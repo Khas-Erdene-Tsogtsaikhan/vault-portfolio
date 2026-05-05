@@ -1,0 +1,68 @@
+// Supabase/PostgreSQL-ready Prisma schema for VAULT Phase 1.
+// The MVP uses local demo state until database credentials are configured.
+
+model User {
+  id                String   @id @default(uuid())
+  email             String   @unique
+  username          String
+  created_at        DateTime @default(now())
+  tier              String
+  total_items       Int      @default(0)
+  total_value_cached Decimal @default(0)
+  streak_months     Int      @default(0)
+  avatar_url        String?
+}
+
+model Item {
+  id                       String   @id @default(uuid())
+  user_id                  String
+  name                     String
+  category                 String
+  subcategory              String?
+  brand                    String?
+  reference_number         String?
+  edition_number           Int?
+  edition_total            Int?
+  condition                String?
+  cost_basis               Decimal
+  currency                 String   @default("USD")
+  acquired_date            DateTime
+  acquired_from            String?
+  notes                    String?
+  story                    String?
+  current_value_user       Decimal
+  current_value_market     Decimal?
+  current_value_source     String
+  current_value_updated_at DateTime
+  is_sold                  Boolean  @default(false)
+  sold_price               Decimal?
+  sold_date                DateTime?
+  created_at               DateTime @default(now())
+  updated_at               DateTime @updatedAt
+}
+
+model Photo {
+  id         String   @id @default(uuid())
+  item_id    String
+  url        String
+  order      Int
+  is_primary Boolean  @default(false)
+  created_at DateTime @default(now())
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  item_id     String
+  url         String
+  filename    String
+  type        String
+  uploaded_at DateTime @default(now())
+}
+
+model PriceHistory {
+  id          String   @id @default(uuid())
+  item_id     String
+  value       Decimal
+  source      String
+  recorded_at DateTime @default(now())
+}
