@@ -5,6 +5,8 @@ import { persist } from "zustand/middleware";
 import { demoItems, demoListings, demoOffers, demoUser, demoWatchlist } from "@/lib/demo-data";
 import { buildNotificationEvents, createMockWebPushToken, defaultNotificationPrefs } from "@/lib/notifications";
 import { getTier } from "@/lib/portfolio-utils";
+import { addVaultItemToSupabase, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, updateSupabaseEstimate, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
+import { supabase } from "@/lib/supabase";
 import type { Category, Listing, MarketSearchResult, NotificationEvent, NotificationPreferences, Offer, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
 
 export interface NewVaultItemInput {
@@ -30,8 +32,8 @@ export interface NewVaultItemInput {
   lastSaleDate?: string;
   priceSampleSize?: number;
   priceConfidence?: VaultItem["priceConfidence"];
-  photoFiles: string[];
-  documentFiles: Array<{ filename: string; type: VaultDocument["type"] }>;
+  photoFiles: File[];
+  documentFiles: Array<{ file: File; type: VaultDocument["type"] }>;
 }
 
 interface VaultState {
@@ -43,11 +45,15 @@ interface VaultState {
   notificationPrefs: NotificationPreferences;
   notificationEvents: NotificationEvent[];
   pushTokens: PushToken[];
+  authStatus: "demo" | "loading" | "authenticated" | "error";
+  authError?: string;
   lastAddedItemId?: string;
   dismissedMilestoneValue?: number;
-  addItem: (input: NewVaultItemInput) => VaultItem;
-  updateEstimate: (itemId: string, value: number) => void;
-  toggleOpenToOffers: (itemId: string, enabled: boolean, floorPrice?: number) => void;
+  loadRemoteVault: () => Promise<void>;
+  resetToDemo: () => void;
+  addItem: (input: NewVaultItemInput) => Promise<VaultItem>;
+  updateEstimate: (itemId: string, value: number) => Promise<void>;
+  toggleOpenToOffers: (itemId: string, enabled: boolean, floorPrice?: number) => Promise<void>;
   updateOfferFloor: (itemId: string, floorPrice?: number) => void;
   watchMarketItem: (result: MarketSearchResult, targetPrice?: number) => void;
   unwatchItem: (watchId: string) => void;
@@ -71,10 +77,54 @@ export const useVaultStore = create<VaultState>()(
       notificationPrefs: defaultNotificationPrefs,
       notificationEvents: [],
       pushTokens: [],
-      addItem: (input) => {
+      authStatus: "demo",
+      loadRemoteVault: async () => {
+        if (!supabase) {
+          set({ authStatus: "demo", authError: undefined });
+          return;
+        }
+        set({ authStatus: "loading", authError: undefined });
+        const { data, error } = await supabase.auth.getUser();
+        if (error || !data.user) {
+          set({ authStatus: "demo", authError: undefined });
+          return;
+        }
+        try {
+          const remote = await loadVaultFromSupabase(data.user);
+          set({ ...remote, authStatus: "authenticated", authError: undefined, lastAddedItemId: undefined });
+        } catch (loadError) {
+          set({ authStatus: "error", authError: loadError instanceof Error ? loadError.message : "Could not load Supabase vault." });
+        }
+      },
+      resetToDemo: () => set({
+        user: demoUser,
+        items: demoItems,
+        listings: demoListings,
+        offers: demoOffers,
+        watchlist: demoWatchlist,
+        notificationPrefs: defaultNotificationPrefs,
+        notificationEvents: [],
+        pushTokens: [],
+        authStatus: "demo",
+        authError: undefined,
+        lastAddedItemId: undefined
+      }),
+      addItem: async (input) => {
+        const state = get();
+        if (supabase && state.authStatus === "authenticated" && state.user.id !== demoUser.id) {
+          const item = await addVaultItemToSupabase(input, state.user);
+          const items = [item, ...get().items];
+          const totalValue = items.reduce((sum, vaultItem) => sum + (vaultItem.currentValueMarket ?? vaultItem.currentValueUser), 0);
+          set((current) => ({
+            items,
+            lastAddedItemId: item.id,
+            user: { ...current.user, tier: getTier(totalValue), totalItems: items.length, totalValueCached: totalValue, streakMonths: Math.max(current.user.streakMonths, 1) }
+          }));
+          return item;
+        }
         const now = new Date().toISOString();
         const id = `${input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now()}`;
-        const photos: VaultPhoto[] = (input.photoFiles.length ? input.photoFiles : ["https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80"]).slice(0, 6).map((filename, index) => ({
+        const photos: VaultPhoto[] = (input.photoFiles.length ? input.photoFiles.map((file) => file.name) : ["https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80"]).slice(0, 6).map((filename, index) => ({
           id: `${id}-photo-${index + 1}`,
           itemId: id,
           url: filename.startsWith("http") ? filename : "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80",
@@ -86,7 +136,7 @@ export const useVaultStore = create<VaultState>()(
           id: `${id}-doc-${index + 1}`,
           itemId: id,
           url: "#",
-          filename: document.filename,
+          filename: document.file.name,
           type: document.type,
           uploadedAt: now
         }));
@@ -146,7 +196,7 @@ export const useVaultStore = create<VaultState>()(
         }));
         return item;
       },
-      updateEstimate: (itemId, value) => {
+      updateEstimate: async (itemId, value) => {
         const now = new Date().toISOString();
         set((state) => ({
           items: state.items.map((item) =>
@@ -161,9 +211,16 @@ export const useVaultStore = create<VaultState>()(
               : item
           )
         }));
+        if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
+          await updateSupabaseEstimate(itemId, value);
+        }
       },
-      toggleOpenToOffers: (itemId, enabled, floorPrice) => {
+      toggleOpenToOffers: async (itemId, enabled, floorPrice) => {
         const now = new Date().toISOString();
+        const currentItem = get().items.find((item) => item.id === itemId);
+        if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id && currentItem) {
+          await setSupabaseOpenToOffers(currentItem, get().user, enabled, floorPrice);
+        }
         set((state) => {
           const existing = state.listings.find((listing) => listing.itemId === itemId);
           const listing: Listing = existing
@@ -225,8 +282,19 @@ export const useVaultStore = create<VaultState>()(
           )
         }));
       },
-      updateNotificationPrefs: (prefs) => set((state) => ({ notificationPrefs: { ...(state.notificationPrefs ?? defaultNotificationPrefs), ...prefs } })),
-      enableWebPush: () => set((state) => ({ pushTokens: state.pushTokens?.length ? state.pushTokens : [createMockWebPushToken(state.user.id)] })),
+      updateNotificationPrefs: (prefs) => {
+        set((state) => ({ notificationPrefs: { ...(state.notificationPrefs ?? defaultNotificationPrefs), ...prefs } }));
+        if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
+          void updateSupabaseNotificationPrefs(get().user.id, prefs);
+        }
+      },
+      enableWebPush: () => {
+        const fallback = createMockWebPushToken(get().user.id);
+        set((state) => ({ pushTokens: state.pushTokens?.length ? state.pushTokens : [fallback] }));
+        if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
+          void insertSupabasePushToken(get().user.id, fallback.token, "web").then((token) => set({ pushTokens: [token] }));
+        }
+      },
       runNotificationChecks: () => {
         const state = get();
         const events = buildNotificationEvents({
@@ -238,6 +306,9 @@ export const useVaultStore = create<VaultState>()(
         });
         if (events.length) {
           set((current) => ({ notificationEvents: [...events, ...(current.notificationEvents ?? [])] }));
+          if (supabase && state.authStatus === "authenticated" && state.user.id !== demoUser.id) {
+            void insertSupabaseNotificationEvents(events);
+          }
         }
         return events;
       },

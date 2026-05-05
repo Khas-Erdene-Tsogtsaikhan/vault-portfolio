@@ -18,6 +18,7 @@ export function AddItemWizard() {
   const [method, setMethod] = useState<"manual" | "photo" | "barcode" | "url">("manual");
   const [toast, setToast] = useState("");
   const [tierCelebration, setTierCelebration] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
     category: "watches" as Category,
     name: "",
@@ -34,8 +35,8 @@ export function AddItemWizard() {
     story: "",
     url: ""
   });
-  const [photoFiles, setPhotoFiles] = useState<string[]>([]);
-  const [documentFiles, setDocumentFiles] = useState<Array<{ filename: string; type: VaultDocument["type"] }>>([]);
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [documentFiles, setDocumentFiles] = useState<Array<{ file: File; type: VaultDocument["type"] }>>([]);
   const [marketResult, setMarketResult] = useState<MarketSearchResult | null>(null);
 
   function applyMarketResult(result: MarketSearchResult) {
@@ -49,7 +50,6 @@ export function AddItemWizard() {
       currentValueUser: String(result.price),
       url: result.url ?? current.url
     }));
-    setPhotoFiles(result.imageUrl ? [result.imageUrl] : []);
     setToast(`${result.title} priced at ${currency.format(result.price)} from ${result.source}. Review, add cost basis, then place it in your Vault.`);
   }
 
@@ -71,43 +71,50 @@ export function AddItemWizard() {
     setToast("URL import mocked: listing extraction is represented for faster item entry.");
   }
 
-  function submit() {
+  async function submit() {
     const beforeMetrics = getPortfolioMetrics(items);
-    const item = addItem({
-      name: form.name || "Untitled Vault Asset",
-      category: form.category,
-      brand: form.brand || "Unknown maker",
-      referenceNumber: form.referenceNumber || undefined,
-      editionNumber: form.editionNumber ? Number(form.editionNumber) : undefined,
-      editionTotal: form.editionTotal ? Number(form.editionTotal) : undefined,
-      condition: form.condition,
-      costBasis: Number(form.costBasis || 0),
-      currentValueUser: Number(form.currentValueUser || form.costBasis || 0),
-      currentValueMarket: marketResult?.priceConfidence === "NONE" ? undefined : marketResult?.price,
-      ebaySearchQuery: marketResult?.searchQuery,
-      ebayReference: marketResult?.id,
-      priceLow: marketResult?.priceLow,
-      priceHigh: marketResult?.priceHigh,
-      lastSalePrice: marketResult?.lastSalePrice,
-      lastSaleDate: marketResult?.lastSaleDate,
-      priceSampleSize: marketResult?.soldCount,
-      priceConfidence: marketResult?.priceConfidence,
-      acquiredDate: form.acquiredDate,
-      acquiredFrom: form.acquiredFrom,
-      notes: form.notes,
-      story: form.story || "The provenance story begins here.",
-      photoFiles,
-      documentFiles
-    });
-    const nextTotal = beforeMetrics.totalValue + item.currentValueUser;
-    const nextTier = getTier(nextTotal);
-    const milestone = getCrossedMilestone(nextTotal);
-    setToast(`${item.name} is now in your Vault. Your collection has ${itemCount + 1} items.${milestone ? ` You crossed ${milestone.label} in catalogued value.` : ""}`);
-    if (nextTier !== beforeMetrics.tier) {
-      setTierCelebration(nextTier);
-      setTimeout(() => router.push("/"), 1600);
-    } else {
-      setTimeout(() => router.push("/"), 900);
+    setIsSaving(true);
+    try {
+      const item = await addItem({
+        name: form.name || "Untitled Vault Asset",
+        category: form.category,
+        brand: form.brand || "Unknown maker",
+        referenceNumber: form.referenceNumber || undefined,
+        editionNumber: form.editionNumber ? Number(form.editionNumber) : undefined,
+        editionTotal: form.editionTotal ? Number(form.editionTotal) : undefined,
+        condition: form.condition,
+        costBasis: Number(form.costBasis || 0),
+        currentValueUser: Number(form.currentValueUser || form.costBasis || 0),
+        currentValueMarket: marketResult?.priceConfidence === "NONE" ? undefined : marketResult?.price,
+        ebaySearchQuery: marketResult?.searchQuery,
+        ebayReference: marketResult?.id,
+        priceLow: marketResult?.priceLow,
+        priceHigh: marketResult?.priceHigh,
+        lastSalePrice: marketResult?.lastSalePrice,
+        lastSaleDate: marketResult?.lastSaleDate,
+        priceSampleSize: marketResult?.soldCount,
+        priceConfidence: marketResult?.priceConfidence,
+        acquiredDate: form.acquiredDate,
+        acquiredFrom: form.acquiredFrom,
+        notes: form.notes,
+        story: form.story || "The provenance story begins here.",
+        photoFiles,
+        documentFiles
+      });
+      const nextTotal = beforeMetrics.totalValue + (item.currentValueMarket ?? item.currentValueUser);
+      const nextTier = getTier(nextTotal);
+      const milestone = getCrossedMilestone(nextTotal);
+      setToast(`${item.name} is now in your Vault. Your collection has ${itemCount + 1} items.${milestone ? ` You crossed ${milestone.label} in catalogued value.` : ""}`);
+      if (nextTier !== beforeMetrics.tier) {
+        setTierCelebration(nextTier);
+        setTimeout(() => router.push("/"), 1600);
+      } else {
+        setTimeout(() => router.push("/"), 900);
+      }
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "Could not save this item. Check Supabase setup and try again.");
+    } finally {
+      setIsSaving(false);
     }
   }
 
@@ -150,8 +157,8 @@ export function AddItemWizard() {
       </section>
 
       <aside className="space-y-5">
-        <UploadBox label="Photos" detail="Up to 6 photos. Camera capture works on mobile." accept="image/*" multiple onChange={(names) => setPhotoFiles(names.slice(0, 6))} />
-        <UploadBox label="Documents" detail="Receipts, certificates, appraisals, service records." accept="image/*,.pdf" multiple onChange={(names) => setDocumentFiles(names.map((filename) => ({ filename, type: "other" as const })))} />
+        <UploadBox label="Photos" detail="Up to 6 photos. Camera capture works on mobile." accept="image/*" multiple onChange={(files) => setPhotoFiles(files.slice(0, 6))} />
+        <UploadBox label="Documents" detail="Receipts, certificates, appraisals, service records." accept="image/*,.pdf" multiple onChange={(files) => setDocumentFiles(files.map((file) => ({ file, type: "other" as const })))} />
         <div className="vault-panel rounded-lg p-5">
           <p className="section-label">Immediate Weight</p>
           <p className="data mt-3 text-4xl text-vault-gold">{currency.format(Number(form.currentValueUser || form.costBasis || 0))}</p>
@@ -159,7 +166,7 @@ export function AddItemWizard() {
         </div>
         <button onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-md bg-vault-gold px-5 py-4 font-semibold text-vault-black transition hover:bg-vault-gold-light">
           <CheckCircle2 size={18} />
-          Place in Vault
+          {isSaving ? "Placing in Vault..." : "Place in Vault"}
         </button>
       </aside>
 
@@ -192,13 +199,13 @@ function MethodButton({ active, icon: Icon, label, onClick }: { active: boolean;
   );
 }
 
-function UploadBox({ label, detail, accept, multiple, onChange }: { label: string; detail: string; accept: string; multiple: boolean; onChange: (names: string[]) => void }) {
+function UploadBox({ label, detail, accept, multiple, onChange }: { label: string; detail: string; accept: string; multiple: boolean; onChange: (files: File[]) => void }) {
   return (
     <label className="vault-panel block cursor-pointer rounded-lg p-5">
       <FileUp className="text-vault-gold" />
       <span className="mt-3 block font-semibold text-vault-text">{label}</span>
       <span className="mt-2 block text-sm leading-6 text-vault-muted">{detail}</span>
-      <input className="sr-only" type="file" accept={accept} multiple={multiple} capture={accept === "image/*" ? "environment" : undefined} onChange={(event) => onChange(Array.from(event.target.files ?? []).map((file) => file.name))} />
+      <input className="sr-only" type="file" accept={accept} multiple={multiple} capture={accept === "image/*" ? "environment" : undefined} onChange={(event) => onChange(Array.from(event.target.files ?? []))} />
     </label>
   );
 }
