@@ -31,11 +31,9 @@ export async function GET(request: Request) {
 
   const appId = process.env.EBAY_APP_ID ?? process.env.EBAY_CLIENT_ID;
   if (!appId) {
-    const priceCharting = await fetchPriceChartingFallback(query, category);
-    if (priceCharting) return NextResponse.json(priceCharting);
     const valuation = calculateMarketValue(mockSoldListings(query, category));
     const results = valuationToResults(query, category, valuation).slice(0, 5);
-    return NextResponse.json({ results, valuation: publicValuation(valuation), source: "mock", note: "Set EBAY_APP_ID for eBay Finding API sold listings. Set PRICECHARTING_API_TOKEN for the fallback." });
+    return NextResponse.json({ results, valuation: publicValuation(valuation), source: "mock", note: "Set EBAY_APP_ID for eBay Finding API sold listings." });
   }
 
   try {
@@ -48,8 +46,6 @@ export async function GET(request: Request) {
     }
 
     if (!response.ok) {
-      const priceCharting = await fetchPriceChartingFallback(query, category);
-      if (priceCharting) return NextResponse.json({ ...priceCharting, note: `eBay Finding API returned ${response.status}; using PriceCharting fallback.` });
       const valuation = calculateMarketValue(mockSoldListings(query, category));
       const results = valuationToResults(query, category, valuation).slice(0, 5);
       return NextResponse.json({ results, valuation: publicValuation(valuation), source: "mock", note: `eBay Finding API returned ${response.status}; using mock fallback.` });
@@ -63,8 +59,6 @@ export async function GET(request: Request) {
     setCached(cacheKey, payload, 21600);
     return NextResponse.json({ ...payload, cache: "miss" });
   } catch {
-    const priceCharting = await fetchPriceChartingFallback(query, category);
-    if (priceCharting) return NextResponse.json({ ...priceCharting, note: "eBay timeout or network error; using PriceCharting fallback." });
     const valuation = calculateMarketValue(mockSoldListings(query, category));
     const results = valuationToResults(query, category, valuation).slice(0, 5);
     return NextResponse.json({ results, valuation: publicValuation(valuation), source: "mock", note: "eBay timeout or network error; keeping mock fallback data." });
@@ -128,89 +122,4 @@ function publicValuation(valuation: EbayValuation) {
 
 function emptySummary() {
   return { marketValue: null, priceLow: null, priceHigh: null, avgPrice: null, sampleSize: 0, lastSalePrice: null, lastSaleDate: null, confidence: "NONE" };
-}
-
-async function fetchPriceChartingFallback(query: string, category: ReturnType<typeof inferCategory>) {
-  const token = process.env.PRICECHARTING_API_TOKEN;
-  if (!token || !["trading_cards", "books", "coins"].includes(category)) return null;
-
-  const url = new URL("https://www.pricecharting.com/api/product");
-  url.searchParams.set("t", token);
-  url.searchParams.set("q", query);
-
-  try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(5000), next: { revalidate: 60 * 60 * 12 } });
-    if (!response.ok) return null;
-    const data = await response.json() as Record<string, unknown>;
-    if (data.status !== "success") return null;
-    const priceCents = pickPriceChartingCents(data, query);
-    if (!priceCents) return null;
-    const price = Math.round(priceCents / 100);
-    const title = [data["product-name"], data["console-name"]].filter(Boolean).join(" · ") || query;
-    const now = new Date().toISOString();
-    return {
-      results: [{
-        id: `pricecharting-${data.id ?? query}`,
-        title,
-        category,
-        price,
-        source: "PriceCharting",
-        confidence: "Medium",
-        soldCount: 1,
-        condition: priceChartingConditionLabel(query),
-        soldAt: now,
-        priceLow: price,
-        priceHigh: price,
-        avgPrice: price,
-        lastSalePrice: price,
-        lastSaleDate: now,
-        priceConfidence: "MEDIUM",
-        searchQuery: query,
-        marketStatus: "recent_sales"
-      }],
-      valuation: {
-        marketValue: price,
-        priceLow: price,
-        priceHigh: price,
-        avgPrice: price,
-        sampleSize: 1,
-        lastSalePrice: price,
-        lastSaleDate: now,
-        confidence: "MEDIUM",
-        suspicious: false
-      },
-      source: "pricecharting_api"
-    };
-  } catch {
-    return null;
-  }
-}
-
-function pickPriceChartingCents(data: Record<string, unknown>, query: string) {
-  const normalized = query.toLowerCase();
-  const candidates = [
-    normalized.includes("psa 10") || normalized.includes("grade 10") ? "graded-price" : "",
-    normalized.includes("psa 10") || normalized.includes("grade 10") ? "condition-17-price" : "",
-    normalized.includes("bgs 10") ? "bgs-10-price" : "",
-    normalized.includes("new") || normalized.includes("sealed") ? "new-price" : "",
-    normalized.includes("cib") ? "cib-price" : "",
-    "graded-price",
-    "new-price",
-    "cib-price",
-    "loose-price"
-  ].filter(Boolean);
-  for (const key of candidates) {
-    const value = Number(data[key]);
-    if (Number.isFinite(value) && value > 0) return value;
-  }
-  return 0;
-}
-
-function priceChartingConditionLabel(query: string) {
-  const normalized = query.toLowerCase();
-  if (normalized.includes("psa 10")) return "PSA 10";
-  if (normalized.includes("bgs 10")) return "BGS 10";
-  if (normalized.includes("sealed")) return "Sealed";
-  if (normalized.includes("cib")) return "CIB";
-  return "PriceCharting match";
 }
