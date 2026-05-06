@@ -41,6 +41,7 @@ export interface PublicValuation {
 const memoryCache = new Map<string, { expiresAt: number; value: CachedPricePayload }>();
 let queue: Promise<unknown> = Promise.resolve();
 let lastCallAt = 0;
+const CACHE_VERSION = "pc-v5";
 
 const priceFields = [
   ["loose-price", "Loose / Ungraded"],
@@ -60,7 +61,7 @@ export function normalizePriceKey(value: string) {
 
 export async function searchPriceCharting(rawQuery: string, limit = 20): Promise<CachedPricePayload> {
   const query = rawQuery.trim();
-  const identifier = normalizePriceKey(query);
+  const identifier = `${CACHE_VERSION}:products:${limit}:${normalizePriceKey(query)}`;
   const cached = await readCache(identifier);
   if (cached) return { ...cached, source: cached.source === "mock" ? "mock" : "pricecharting_cache" };
 
@@ -73,7 +74,7 @@ export async function searchPriceCharting(rawQuery: string, limit = 20): Promise
 
   const matches = await enqueuePriceChartingCall(() => fetchProducts(token, query, limit));
   const results = await Promise.all(matches.slice(0, Math.min(limit, 20)).map(async (product) => {
-    const detailCache = await readCache(normalizePriceKey(`pc-${product.id}`));
+    const detailCache = await readCache(productCacheKey(product.id));
     return detailCache?.results[0] ?? productSummaryToResult(product, query);
   }));
   const valuation = resultsToValuation(results);
@@ -83,7 +84,7 @@ export async function searchPriceCharting(rawQuery: string, limit = 20): Promise
 }
 
 export async function getPriceChartingProductResult(productId: string, query = "", preferredField?: string): Promise<CachedPricePayload> {
-  const identifier = normalizePriceKey(`pc-${productId}`);
+  const identifier = productCacheKey(productId);
   const cached = await readCache(identifier);
   if (cached?.results[0]?.priceOptions?.length) return { ...cached, source: cached.source === "mock" ? "mock" : "pricecharting_cache" };
 
@@ -108,8 +109,12 @@ export async function refreshPriceChartingProduct(item: Pick<VaultItem, "id" | "
   const product = await enqueuePriceChartingCall(() => fetchProduct(token, { id: item.pricechartingId as string }));
   const result = productToResult(product, product["product-name"], item.pricechartingPriceField);
   if (!result) return null;
-  await writeCache(normalizePriceKey(`pc-${item.pricechartingId}`), { results: [result], valuation: resultToValuation(result), source: "pricecharting_api" });
+  await writeCache(productCacheKey(item.pricechartingId), { results: [result], valuation: resultToValuation(result), source: "pricecharting_api" });
   return result;
+}
+
+function productCacheKey(productId: string) {
+  return `${CACHE_VERSION}:product:${productId}`;
 }
 
 export function choosePriceOption(product: PriceChartingProduct, query: string, preferredField?: string) {
