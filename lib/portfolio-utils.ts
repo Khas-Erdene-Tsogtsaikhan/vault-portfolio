@@ -13,6 +13,32 @@ export const compactCurrency = {
 };
 export const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
 
+const emptyVaultItem: VaultItem = {
+  id: "empty-vault-item",
+  userId: "empty",
+  name: "First Vault Asset",
+  category: "other",
+  brand: "VAULT",
+  condition: "Ready to add",
+  costBasis: 0,
+  currency: "USD",
+  acquiredDate: new Date().toISOString().slice(0, 10),
+  notes: "",
+  story: "",
+  currentValueUser: 0,
+  currentValueSource: "Your estimate",
+  currentValueUpdatedAt: new Date().toISOString(),
+  value24hAgo: 0,
+  listingStatus: "none",
+  isSold: false,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  photos: [],
+  documents: [],
+  priceHistory: [],
+  marketComps: []
+};
+
 export const valueMilestones: VaultMilestone[] = [
   { label: "$10k", value: 10000, percentile: 72 },
   { label: "$25k", value: 25000, percentile: 82 },
@@ -113,10 +139,10 @@ export function getPortfolioMetrics(items: VaultItem[]) {
   const value24hAgo = items.reduce((sum, item) => sum + (item.value24hAgo ?? item.priceHistory.at(-2)?.value ?? item.currentValueUser), 0);
   const todayDelta = totalValue - value24hAgo;
   const todayDeltaPercent = value24hAgo ? todayDelta / value24hAgo : 0;
-  const topItem = [...items].sort((a, b) => getCurrentValue(b) - getCurrentValue(a))[0];
-  const bestPerformer = [...items].sort((a, b) => getItemReturn(b).percentage - getItemReturn(a).percentage)[0];
-  const worstPerformer = [...items].sort((a, b) => getItemReturn(a).percentage - getItemReturn(b).percentage)[0];
-  const rarestPiece = [...items].sort((a, b) => rarityScore(a) - rarityScore(b))[0];
+  const topItem = [...items].sort((a, b) => getCurrentValue(b) - getCurrentValue(a))[0] ?? emptyVaultItem;
+  const bestPerformer = [...items].sort((a, b) => getItemReturn(b).percentage - getItemReturn(a).percentage)[0] ?? emptyVaultItem;
+  const worstPerformer = [...items].sort((a, b) => getItemReturn(a).percentage - getItemReturn(b).percentage)[0] ?? emptyVaultItem;
+  const rarestPiece = [...items].sort((a, b) => rarityScore(a) - rarityScore(b))[0] ?? emptyVaultItem;
   const categoryBreakdown = getCategoryBreakdown(items);
   const hottestCategory = [...categoryBreakdown].sort((a, b) => b.returnPercentage - a.returnPercentage)[0];
   const documentedScore = Math.round(average(items.map(getCompletenessScore)));
@@ -167,6 +193,9 @@ export function getCategoryBreakdown(items: VaultItem[]) {
 }
 
 export function getPortfolioHistory(items: VaultItem[]) {
+  if (!items.length) {
+    return ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"].map((month) => ({ month, value: 0, sp500: 0 }));
+  }
   const dates = Array.from(new Set(items.flatMap((item) => item.priceHistory.map((point) => point.recordedAt)))).sort();
   return dates.map((date, index) => ({
     month: new Date(date).toLocaleDateString("en-US", { month: "short" }),
@@ -211,6 +240,7 @@ export function getCompletenessScore(item: VaultItem) {
 }
 
 export function getAcquisitionStreak(items: VaultItem[]) {
+  if (!items.length) return 0;
   const monthKeys = new Set(items.map((item) => item.createdAt.slice(0, 7)));
   const start = new Date("2026-05-01T00:00:00Z");
   let streak = 0;

@@ -517,7 +517,7 @@ function buildAnalytics(items: VaultItem[]) {
     weekDeltaPercent: metrics.value24hAgo ? weekDelta / Math.max(metrics.value24hAgo - weekDelta, 1) : 0,
     yearDelta,
     yearDeltaPercent: firstValue ? yearDelta / firstValue : 0,
-    bestDay: { amount: getItemDailyDelta(bestDayItem).amount, date: "May 4", item: `${bestDayItem.name} spike` },
+    bestDay: { amount: bestDayItem ? getItemDailyDelta(bestDayItem).amount : 0, date: "May 4", item: bestDayItem ? `${bestDayItem.name} spike` : "First asset waiting" },
     avgHoldYears,
     performanceSeries,
     acquisitionSeries,
