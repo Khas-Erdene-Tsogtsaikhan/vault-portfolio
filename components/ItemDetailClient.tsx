@@ -112,6 +112,7 @@ export function ItemDetailClient({ id }: { id: string }) {
               <span className="mt-1 block text-xs leading-5 text-vault-muted">Removes the active image from the gallery.</span>
             </button>
           </div>
+          <AssetRecordEditor item={item} editForm={editForm} setEditForm={setEditForm} updateItemDetails={updateItemDetails} setEstimate={setEstimate} setProofToast={setProofToast} />
         </div>
 
         <div className="vault-panel rounded-lg p-6">
@@ -219,51 +220,6 @@ export function ItemDetailClient({ id }: { id: string }) {
 
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="vault-panel rounded-lg p-5">
-          <p className="section-label">Editable Asset Record</p>
-          <h2 className="mt-2 font-serif text-4xl font-light text-vault-text">Keep the economics and provenance current.</h2>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <EditField label="Name" value={editForm.name} onChange={(value) => setEditForm({ ...editForm, name: value })} />
-            <EditField label="Brand / Maker" value={editForm.brand} onChange={(value) => setEditForm({ ...editForm, brand: value })} />
-            <EditField label="Reference / Serial" value={editForm.referenceNumber} onChange={(value) => setEditForm({ ...editForm, referenceNumber: value })} />
-            <EditField label="Condition / Grade" value={editForm.condition} onChange={(value) => setEditForm({ ...editForm, condition: value })} />
-            <EditField label="Cost Basis" value={editForm.costBasis} onChange={(value) => setEditForm({ ...editForm, costBasis: value })} data />
-            <EditField label="Current Estimate" value={editForm.currentValueUser} onChange={(value) => setEditForm({ ...editForm, currentValueUser: value })} data />
-            <EditField label="Date Acquired" value={editForm.acquiredDate} onChange={(value) => setEditForm({ ...editForm, acquiredDate: value })} type="date" data />
-            <EditField label="Acquired From" value={editForm.acquiredFrom} onChange={(value) => setEditForm({ ...editForm, acquiredFrom: value })} />
-          </div>
-          <label className="mt-3 block">
-            <span className="mb-2 block section-label">Notes</span>
-            <textarea className="form-input min-h-24" value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} />
-          </label>
-          <label className="mt-3 block">
-            <span className="mb-2 block section-label">Story</span>
-            <textarea className="form-input min-h-28" value={editForm.story} onChange={(event) => setEditForm({ ...editForm, story: event.target.value })} />
-          </label>
-          <button
-            onClick={async () => {
-              await updateItemDetails(item.id, {
-                name: editForm.name,
-                brand: editForm.brand,
-                referenceNumber: editForm.referenceNumber || undefined,
-                condition: editForm.condition,
-                costBasis: Number(editForm.costBasis || 0),
-                currentValueUser: Number(editForm.currentValueUser || 0),
-                acquiredDate: editForm.acquiredDate,
-                acquiredFrom: editForm.acquiredFrom || undefined,
-                notes: editForm.notes,
-                story: editForm.story
-              });
-              setEstimate(editForm.currentValueUser);
-              setProofToast("Asset record saved.");
-            }}
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-vault-gold px-4 py-3 font-semibold text-vault-black transition hover:bg-vault-gold-light"
-          >
-            <Save size={16} />
-            Save Asset Record
-          </button>
-        </div>
-
-        <div className="vault-panel rounded-lg p-5">
           <p className="section-label">Story</p>
           <p className="mt-4 text-sm leading-7 text-vault-muted">{item.story}</p>
         </div>
@@ -314,6 +270,84 @@ function EditField({ label, value, onChange, type = "text", data = false }: { la
       <span className="mb-2 block section-label">{label}</span>
       <input className={`form-input ${data ? "data" : ""}`} type={type} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
+  );
+}
+
+function AssetRecordEditor({ item, editForm, setEditForm, updateItemDetails, setEstimate, setProofToast }: {
+  item: VaultItem;
+  editForm: {
+    name: string;
+    brand: string;
+    referenceNumber: string;
+    condition: string;
+    costBasis: string;
+    currentValueUser: string;
+    acquiredDate: string;
+    acquiredFrom: string;
+    notes: string;
+    story: string;
+  };
+  setEditForm: (form: {
+    name: string;
+    brand: string;
+    referenceNumber: string;
+    condition: string;
+    costBasis: string;
+    currentValueUser: string;
+    acquiredDate: string;
+    acquiredFrom: string;
+    notes: string;
+    story: string;
+  }) => void;
+  updateItemDetails: ReturnType<typeof useVaultStore.getState>["updateItemDetails"];
+  setEstimate: (value: string) => void;
+  setProofToast: (value: string) => void;
+}) {
+  return (
+    <div className="mt-4 rounded-lg border border-vault-border bg-vault-card p-5">
+      <p className="section-label">Editable Asset Record</p>
+      <h2 className="mt-2 font-serif text-3xl font-light text-vault-text">Keep the economics and provenance current.</h2>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <EditField label="Name" value={editForm.name} onChange={(value) => setEditForm({ ...editForm, name: value })} />
+        <EditField label="Brand / Maker" value={editForm.brand} onChange={(value) => setEditForm({ ...editForm, brand: value })} />
+        <EditField label="Reference / Serial" value={editForm.referenceNumber} onChange={(value) => setEditForm({ ...editForm, referenceNumber: value })} />
+        <EditField label="Condition / Grade" value={editForm.condition} onChange={(value) => setEditForm({ ...editForm, condition: value })} />
+        <EditField label="Cost Basis" value={editForm.costBasis} onChange={(value) => setEditForm({ ...editForm, costBasis: value })} data />
+        <EditField label="Current Estimate" value={editForm.currentValueUser} onChange={(value) => setEditForm({ ...editForm, currentValueUser: value })} data />
+        <EditField label="Date Acquired" value={editForm.acquiredDate} onChange={(value) => setEditForm({ ...editForm, acquiredDate: value })} type="date" data />
+        <EditField label="Acquired From" value={editForm.acquiredFrom} onChange={(value) => setEditForm({ ...editForm, acquiredFrom: value })} />
+      </div>
+      <label className="mt-3 block">
+        <span className="mb-2 block section-label">Notes</span>
+        <textarea className="form-input min-h-20" value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} />
+      </label>
+      <label className="mt-3 block">
+        <span className="mb-2 block section-label">Story</span>
+        <textarea className="form-input min-h-24" value={editForm.story} onChange={(event) => setEditForm({ ...editForm, story: event.target.value })} />
+      </label>
+      <button
+        onClick={async () => {
+          await updateItemDetails(item.id, {
+            name: editForm.name,
+            brand: editForm.brand,
+            referenceNumber: editForm.referenceNumber || undefined,
+            condition: editForm.condition,
+            costBasis: Number(editForm.costBasis || 0),
+            currentValueUser: Number(editForm.currentValueUser || 0),
+            acquiredDate: editForm.acquiredDate,
+            acquiredFrom: editForm.acquiredFrom || undefined,
+            notes: editForm.notes,
+            story: editForm.story
+          });
+          setEstimate(editForm.currentValueUser);
+          setProofToast("Asset record saved.");
+        }}
+        className="mt-4 inline-flex items-center gap-2 rounded-md bg-vault-gold px-4 py-3 font-semibold text-vault-black transition hover:bg-vault-gold-light"
+      >
+        <Save size={16} />
+        Save Asset Record
+      </button>
+    </div>
   );
 }
 
