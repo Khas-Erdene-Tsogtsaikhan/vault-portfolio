@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import { demoItems, demoListings, demoOffers, demoUser, demoWatchlist } from "@/lib/demo-data";
 import { buildNotificationEvents, createMockWebPushToken, defaultNotificationPrefs } from "@/lib/notifications";
 import { getTier } from "@/lib/portfolio-utils";
-import { addVaultItemToSupabase, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, updateSupabaseEstimate, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
+import { addProofFilesToSupabaseItem, addVaultItemToSupabase, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, updateSupabaseEstimate, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
 import { supabase } from "@/lib/supabase";
 import type { Category, Listing, MarketSearchResult, NotificationEvent, NotificationPreferences, Offer, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
 
@@ -32,6 +32,7 @@ export interface NewVaultItemInput {
   lastSaleDate?: string;
   priceSampleSize?: number;
   priceConfidence?: VaultItem["priceConfidence"];
+  photoUrls?: string[];
   photoFiles: File[];
   documentFiles: Array<{ file: File; type: VaultDocument["type"] }>;
 }
@@ -52,6 +53,7 @@ interface VaultState {
   loadRemoteVault: () => Promise<void>;
   resetToDemo: () => void;
   addItem: (input: NewVaultItemInput) => Promise<VaultItem>;
+  addProofFiles: (itemId: string, photoFiles: File[], documentFiles: Array<{ file: File; type: VaultDocument["type"] }>) => Promise<void>;
   updateEstimate: (itemId: string, value: number) => Promise<void>;
   toggleOpenToOffers: (itemId: string, enabled: boolean, floorPrice?: number) => Promise<void>;
   updateOfferFloor: (itemId: string, floorPrice?: number) => void;
@@ -124,7 +126,8 @@ export const useVaultStore = create<VaultState>()(
         }
         const now = new Date().toISOString();
         const id = `${input.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-${Date.now()}`;
-        const photos: VaultPhoto[] = (input.photoFiles.length ? input.photoFiles.map((file) => file.name) : ["https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80"]).slice(0, 6).map((filename, index) => ({
+        const photoSources = input.photoUrls?.length ? input.photoUrls : input.photoFiles.length ? input.photoFiles.map((file) => file.name) : ["https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80"];
+        const photos: VaultPhoto[] = photoSources.slice(0, 6).map((filename, index) => ({
           id: `${id}-photo-${index + 1}`,
           itemId: id,
           url: filename.startsWith("http") ? filename : "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80",
@@ -195,6 +198,43 @@ export const useVaultStore = create<VaultState>()(
           }
         }));
         return item;
+      },
+      addProofFiles: async (itemId, photoFiles, documentFiles) => {
+        const now = new Date().toISOString();
+        const state = get();
+        if (supabase && state.authStatus === "authenticated" && state.user.id !== demoUser.id) {
+          const additions = await addProofFilesToSupabaseItem(itemId, state.user.id, photoFiles, documentFiles);
+          set((current) => ({
+            items: current.items.map((item) =>
+              item.id === itemId
+                ? { ...item, photos: [...item.photos, ...additions.photos], documents: [...additions.documents, ...item.documents], updatedAt: now }
+                : item
+            )
+          }));
+          return;
+        }
+        set((current) => ({
+          items: current.items.map((item) => {
+            if (item.id !== itemId) return item;
+            const photos = photoFiles.map((file, index) => ({
+              id: `${itemId}-local-photo-${Date.now()}-${index}`,
+              itemId,
+              url: "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80",
+              order: item.photos.length + index + 1,
+              isPrimary: item.photos.length === 0 && index === 0,
+              createdAt: now
+            }));
+            const documents = documentFiles.map((document, index) => ({
+              id: `${itemId}-local-doc-${Date.now()}-${index}`,
+              itemId,
+              url: "#",
+              filename: document.file.name,
+              type: document.type,
+              uploadedAt: now
+            }));
+            return { ...item, photos: [...item.photos, ...photos], documents: [...documents, ...item.documents], updatedAt: now };
+          })
+        }));
       },
       updateEstimate: async (itemId, value) => {
         const now = new Date().toISOString();

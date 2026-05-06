@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Download, FileText, Pencil, Share2 } from "lucide-react";
+import { Download, FileText, FileUp, ImagePlus, Pencil, Share2 } from "lucide-react";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/Badge";
@@ -25,9 +25,11 @@ import { useVaultStore } from "@/lib/vault-store";
 export function ItemDetailClient({ id }: { id: string }) {
   const items = useVaultStore((state) => state.items);
   const updateEstimate = useVaultStore((state) => state.updateEstimate);
+  const addProofFiles = useVaultStore((state) => state.addProofFiles);
   const item = items.find((candidate) => candidate.id === id);
   const [activePhoto, setActivePhoto] = useState(0);
   const [estimate, setEstimate] = useState(item?.currentValueUser.toString() ?? "");
+  const [proofToast, setProofToast] = useState("");
   const shareText = useMemo(() => item ? `${item.name}: ${currency.format(item.costBasis)} to ${currency.format(item.currentValueUser)} (${percent.format(getItemReturn(item).percentage)})` : "", [item]);
 
   if (!item) {
@@ -56,14 +58,18 @@ export function ItemDetailClient({ id }: { id: string }) {
       <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <div className="relative h-[520px] overflow-hidden rounded-lg border border-vault-border bg-vault-card">
-            <Image src={item.photos[activePhoto]?.url} alt={item.name} fill priority sizes="(min-width:1024px) 50vw, 100vw" className="object-cover" />
+            {item.photos[activePhoto]?.url ? (
+              <Image src={item.photos[activePhoto].url} alt={item.name} fill priority sizes="(min-width:1024px) 50vw, 100vw" className="object-cover" />
+            ) : (
+              <div className="flex h-full items-center justify-center text-vault-muted">Upload the first owner photo</div>
+            )}
           </div>
           <div className="mt-3 flex gap-3 overflow-x-auto">
             {item.photos.map((photo, index) => (
               <button key={photo.id} onClick={() => setActivePhoto(index)} className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-md border ${activePhoto === index ? "border-vault-gold" : "border-vault-border"}`}>
-                <Image src={photo.url} alt="" fill sizes="80px" className="object-cover" />
-              </button>
-            ))}
+              <Image src={photo.url} alt="" fill sizes="80px" className="object-cover" />
+            </button>
+          ))}
           </div>
         </div>
 
@@ -142,7 +148,7 @@ export function ItemDetailClient({ id }: { id: string }) {
           <p className="section-label">Share Card Generator</p>
           <div className="mt-4 aspect-square rounded-lg border border-vault-border bg-vault-black p-4">
             <div className="relative h-40 overflow-hidden rounded-md">
-              <Image src={item.photos[0]?.url} alt="" fill sizes="300px" className="object-cover" />
+              {item.photos[0]?.url ? <Image src={item.photos[0].url} alt="" fill sizes="300px" className="object-cover" /> : null}
             </div>
             <p className="mt-4 font-serif text-3xl font-light text-vault-text">{item.name}</p>
             <p className="data mt-2 text-vault-gold">{currency.format(item.costBasis)} to {currency.format(item.currentValueUser)}</p>
@@ -176,18 +182,71 @@ export function ItemDetailClient({ id }: { id: string }) {
           <p className="mt-4 text-sm leading-7 text-vault-muted">{item.story}</p>
         </div>
         <div className="vault-panel rounded-lg p-5">
-          <p className="section-label">Document Vault</p>
+          <p className="section-label">Provenance Vault</p>
+          <h2 className="mt-2 font-serif text-4xl font-light text-vault-text">Receipts, certificates, and owner proof.</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <ProofUpload
+              icon={ImagePlus}
+              label="Add owner photos"
+              detail="Show the actual physical item in your possession."
+              accept="image/*"
+              onUpload={async (files) => {
+                await addProofFiles(item.id, files.slice(0, 6), []);
+                setProofToast(`${files.length} photo${files.length === 1 ? "" : "s"} added to provenance.`);
+              }}
+            />
+            <ProofUpload
+              icon={FileUp}
+              label="Add documents"
+              detail="Receipts, certificates, appraisals, service records."
+              accept="image/*,.pdf"
+              onUpload={async (files) => {
+                await addProofFiles(item.id, [], files.map((file) => ({ file, type: "other" as const })));
+                setProofToast(`${files.length} document${files.length === 1 ? "" : "s"} added to provenance.`);
+              }}
+            />
+          </div>
+          {proofToast ? <p className="mt-3 text-xs text-vault-gold">{proofToast}</p> : null}
           <div className="mt-5 space-y-3">
             {item.documents.map((document) => (
-              <div key={document.id} className="flex items-center justify-between rounded-md border border-vault-border bg-vault-surface p-4">
+              <a key={document.id} href={document.url} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-vault-border bg-vault-surface p-4 transition hover:border-vault-bright">
                 <span className="flex items-center gap-3 text-sm text-vault-text"><FileText size={16} className="text-vault-gold" />{document.filename}</span>
                 <Download size={15} className="text-vault-muted" />
-              </div>
+              </a>
             ))}
+            {!item.documents.length ? <p className="rounded-md border border-dashed border-vault-border p-4 text-sm leading-6 text-vault-muted">Add purchase proof or authenticity documents to make this asset file resale-ready.</p> : null}
           </div>
         </div>
       </section>
     </AppShell>
+  );
+}
+
+function ProofUpload({ icon: Icon, label, detail, accept, onUpload }: { icon: typeof FileUp; label: string; detail: string; accept: string; onUpload: (files: File[]) => Promise<void> }) {
+  const [uploading, setUploading] = useState(false);
+  return (
+    <label className="block cursor-pointer rounded-md border border-vault-border bg-vault-surface p-4 transition hover:border-vault-bright">
+      <Icon size={18} className="text-vault-gold" />
+      <span className="mt-3 block text-sm font-semibold text-vault-text">{uploading ? "Uploading..." : label}</span>
+      <span className="mt-1 block text-xs leading-5 text-vault-muted">{detail}</span>
+      <input
+        className="sr-only"
+        type="file"
+        accept={accept}
+        multiple
+        disabled={uploading}
+        onChange={async (event) => {
+          const files = Array.from(event.target.files ?? []);
+          if (!files.length) return;
+          setUploading(true);
+          try {
+            await onUpload(files);
+          } finally {
+            setUploading(false);
+          }
+        }}
+      />
+    </label>
   );
 }
 

@@ -17,6 +17,8 @@ type PickedResult = {
   costBasis: string;
   acquiredDate: string;
   condition: string;
+  photoFiles: File[];
+  documentFiles: Array<{ file: File; type: VaultDocument["type"] }>;
 };
 
 export function AddItemWizard() {
@@ -55,7 +57,9 @@ export function AddItemWizard() {
           result,
           costBasis: "",
           acquiredDate: new Date().toISOString().slice(0, 10),
-          condition: result.condition ?? "Excellent"
+          condition: result.condition ?? "Excellent",
+          photoFiles: [],
+          documentFiles: []
         }
       ];
     });
@@ -110,11 +114,12 @@ export function AddItemWizard() {
             lastSaleDate: result.lastSaleDate,
             priceSampleSize: result.soldCount,
             priceConfidence: result.priceConfidence,
+            photoUrls: result.imageUrl ? [result.imageUrl] : undefined,
             acquiredDate: pickedItem.acquiredDate,
-            notes: "Added from VAULT market search.",
+            notes: "Added from VAULT market search. Default image sourced from the matched market result; owner photos and proof can be added to the asset file over time.",
             story: "The provenance story begins here.",
-            photoFiles: [],
-            documentFiles: []
+            photoFiles: pickedItem.photoFiles,
+            documentFiles: pickedItem.documentFiles
           }));
         }
       } else {
@@ -276,12 +281,37 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
               <input className="form-input data" value={item.costBasis} onChange={(event) => onUpdate(item.result.id, { costBasis: event.target.value })} placeholder="What you paid" />
               <input className="form-input data" type="date" value={item.acquiredDate} onChange={(event) => onUpdate(item.result.id, { acquiredDate: event.target.value })} />
               <input className="form-input" value={item.condition} onChange={(event) => onUpdate(item.result.id, { condition: event.target.value })} placeholder="Condition / grade" />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <MiniUpload label="Owner photos" accept="image/*" onChange={(files) => onUpdate(item.result.id, { photoFiles: files.slice(0, 6) })} />
+                <MiniUpload label="Proof docs" accept="image/*,.pdf" onChange={(files) => onUpdate(item.result.id, { documentFiles: files.map((file) => ({ file, type: "other" as const })) })} />
+              </div>
+              <p className="text-[11px] leading-5 text-vault-faint">Default photo comes from the market match. Upload your own photos, receipt, or certificate to strengthen provenance.</p>
             </div>
           </article>
         ))}
         {!picked.length ? <p className="rounded-[10px] border border-dashed border-vault-border p-4 text-sm leading-6 text-vault-muted">Search for real sold comps. Every result you pick appears here before it enters your portfolio.</p> : null}
       </div>
     </div>
+  );
+}
+
+function MiniUpload({ label, accept, onChange }: { label: string; accept: string; onChange: (files: File[]) => void }) {
+  const [count, setCount] = useState(0);
+  return (
+    <label className="cursor-pointer rounded-md border border-vault-border bg-vault-surface px-3 py-2 text-xs text-vault-muted transition hover:border-vault-bright hover:text-vault-text">
+      <span>{count ? `${count} ${label}` : label}</span>
+      <input
+        className="sr-only"
+        type="file"
+        accept={accept}
+        multiple
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          setCount(files.length);
+          onChange(files);
+        }}
+      />
+    </label>
   );
 }
 

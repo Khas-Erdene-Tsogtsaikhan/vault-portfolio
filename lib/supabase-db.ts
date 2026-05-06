@@ -136,7 +136,7 @@ export async function addVaultItemToSupabase(input: NewVaultItemInput, user: Vau
 
   if (error) throw error;
 
-  const photos = await uploadPhotos(itemRow.id, user.id, input.photoFiles);
+  const photos = await uploadPhotos(itemRow.id, user.id, input.photoFiles, input.photoUrls);
   const documents = await uploadDocuments(itemRow.id, user.id, input.documentFiles);
   const priceHistory = await insertInitialPriceHistory(itemRow.id, input.costBasis, input.acquiredDate, currentValueUser, now, currentValueMarket);
   const item = mapItem(itemRow, photos, documents, priceHistory);
@@ -214,13 +214,26 @@ export async function insertSupabaseNotificationEvents(events: NotificationEvent
   if (error) throw error;
 }
 
-async function uploadPhotos(itemId: string, userId: string, files: File[]): Promise<VaultPhoto[]> {
+export async function addProofFilesToSupabaseItem(itemId: string, userId: string, photoFiles: File[], documentFiles: Array<{ file: File; type: VaultDocument["type"] }>) {
+  const [photos, documents] = await Promise.all([
+    uploadPhotos(itemId, userId, photoFiles, [], false),
+    uploadDocuments(itemId, userId, documentFiles)
+  ]);
+  return { photos, documents };
+}
+
+async function uploadPhotos(itemId: string, userId: string, files: File[], remoteUrls: string[] = [], useFallback = true): Promise<VaultPhoto[]> {
   if (!supabase) return [];
-  if (!files.length) {
+  if (!files.length && !remoteUrls.length && useFallback) {
     return [{ id: `${itemId}-fallback-photo`, itemId, url: fallbackImage, order: 1, isPrimary: true, createdAt: new Date().toISOString() }];
   }
 
   const rows = [];
+  const remotePhotoUrls = remoteUrls.slice(0, 6);
+  for (let index = 0; index < remotePhotoUrls.length; index += 1) {
+    const url = remotePhotoUrls[index];
+    rows.push({ item_id: itemId, url, order: index + 1, is_primary: index === 0 });
+  }
   const uploadFiles = files.slice(0, 6);
   for (let index = 0; index < uploadFiles.length; index += 1) {
     const file = uploadFiles[index];
@@ -228,8 +241,10 @@ async function uploadPhotos(itemId: string, userId: string, files: File[]): Prom
     const { error } = await supabase.storage.from(storageBuckets.photos).upload(path, file, { upsert: false });
     if (error) throw error;
     const { data } = supabase.storage.from(storageBuckets.photos).getPublicUrl(path);
-    rows.push({ item_id: itemId, url: data.publicUrl, order: index + 1, is_primary: index === 0 });
+    const order = remoteUrls.length + index + 1;
+    rows.push({ item_id: itemId, url: data.publicUrl, order, is_primary: remoteUrls.length === 0 && index === 0 });
   }
+  if (!rows.length) return [];
   const { data, error } = await supabase.from("photos").insert(rows).select("*");
   if (error) throw error;
   return (data ?? []).map(mapPhoto);
