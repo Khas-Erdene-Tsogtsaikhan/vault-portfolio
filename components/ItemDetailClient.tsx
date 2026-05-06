@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Download, FileText, FileUp, ImagePlus, Pencil, Share2 } from "lucide-react";
+import { Download, FileText, FileUp, ImagePlus, Pencil, Save, Share2, Trash2 } from "lucide-react";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { AssetImage } from "@/components/AssetImage";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/Badge";
 import { OpenToOffersControl } from "@/components/OpenToOffersControl";
@@ -25,10 +25,24 @@ import { useVaultStore } from "@/lib/vault-store";
 export function ItemDetailClient({ id }: { id: string }) {
   const items = useVaultStore((state) => state.items);
   const updateEstimate = useVaultStore((state) => state.updateEstimate);
+  const updateItemDetails = useVaultStore((state) => state.updateItemDetails);
   const addProofFiles = useVaultStore((state) => state.addProofFiles);
+  const removePhoto = useVaultStore((state) => state.removePhoto);
   const item = items.find((candidate) => candidate.id === id);
   const [activePhoto, setActivePhoto] = useState(0);
   const [estimate, setEstimate] = useState(item?.currentValueUser.toString() ?? "");
+  const [editForm, setEditForm] = useState({
+    name: item?.name ?? "",
+    brand: item?.brand ?? "",
+    referenceNumber: item?.referenceNumber ?? "",
+    condition: item?.condition ?? "",
+    costBasis: item?.costBasis.toString() ?? "",
+    currentValueUser: item?.currentValueUser.toString() ?? "",
+    acquiredDate: item?.acquiredDate ?? "",
+    acquiredFrom: item?.acquiredFrom ?? "",
+    notes: item?.notes ?? "",
+    story: item?.story ?? ""
+  });
   const [proofToast, setProofToast] = useState("");
   const shareText = useMemo(() => item ? `${item.name}: ${currency.format(item.costBasis)} to ${currency.format(item.currentValueUser)} (${percent.format(getItemReturn(item).percentage)})` : "", [item]);
 
@@ -59,7 +73,7 @@ export function ItemDetailClient({ id }: { id: string }) {
         <div>
           <div className="relative h-[520px] overflow-hidden rounded-lg border border-vault-border bg-vault-card">
             {item.photos[activePhoto]?.url ? (
-              <Image src={item.photos[activePhoto].url} alt={item.name} fill priority sizes="(min-width:1024px) 50vw, 100vw" className="object-cover" />
+              <AssetImage src={item.photos[activePhoto].url} alt={item.name} priority sizes="(min-width:1024px) 50vw, 100vw" />
             ) : (
               <div className="flex h-full items-center justify-center text-vault-muted">Upload the first owner photo</div>
             )}
@@ -67,9 +81,36 @@ export function ItemDetailClient({ id }: { id: string }) {
           <div className="mt-3 flex gap-3 overflow-x-auto">
             {item.photos.map((photo, index) => (
               <button key={photo.id} onClick={() => setActivePhoto(index)} className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-md border ${activePhoto === index ? "border-vault-gold" : "border-vault-border"}`}>
-              <Image src={photo.url} alt="" fill sizes="80px" className="object-cover" />
+                <AssetImage src={photo.url} alt="" sizes="80px" />
+              </button>
+            ))}
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <ProofUpload
+              icon={ImagePlus}
+              label="Add more photos"
+              detail="Owner photos, serial shots, condition angles."
+              accept="image/jpeg,image/png,image/webp"
+              onUpload={async (files) => {
+                await addProofFiles(item.id, files.slice(0, 6), []);
+                setProofToast(`${files.length} photo${files.length === 1 ? "" : "s"} added.`);
+              }}
+            />
+            <button
+              onClick={async () => {
+                const photo = item.photos[activePhoto];
+                if (!photo) return;
+                await removePhoto(item.id, photo.id);
+                setActivePhoto(0);
+                setProofToast("Photo removed from this asset file.");
+              }}
+              disabled={!item.photos.length}
+              className="rounded-md border border-vault-border bg-vault-surface p-4 text-left transition hover:border-vault-red disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Trash2 size={18} className="text-vault-red" />
+              <span className="mt-3 block text-sm font-semibold text-vault-text">Remove selected photo</span>
+              <span className="mt-1 block text-xs leading-5 text-vault-muted">Removes the active image from the gallery.</span>
             </button>
-          ))}
           </div>
         </div>
 
@@ -148,7 +189,7 @@ export function ItemDetailClient({ id }: { id: string }) {
           <p className="section-label">Share Card Generator</p>
           <div className="mt-4 aspect-square rounded-lg border border-vault-border bg-vault-black p-4">
             <div className="relative h-40 overflow-hidden rounded-md">
-              {item.photos[0]?.url ? <Image src={item.photos[0].url} alt="" fill sizes="300px" className="object-cover" /> : null}
+              {item.photos[0]?.url ? <AssetImage src={item.photos[0].url} alt="" sizes="300px" /> : null}
             </div>
             <p className="mt-4 font-serif text-3xl font-light text-vault-text">{item.name}</p>
             <p className="data mt-2 text-vault-gold">{currency.format(item.costBasis)} to {currency.format(item.currentValueUser)}</p>
@@ -177,6 +218,51 @@ export function ItemDetailClient({ id }: { id: string }) {
       </section>
 
       <section className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="vault-panel rounded-lg p-5">
+          <p className="section-label">Editable Asset Record</p>
+          <h2 className="mt-2 font-serif text-4xl font-light text-vault-text">Keep the economics and provenance current.</h2>
+          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <EditField label="Name" value={editForm.name} onChange={(value) => setEditForm({ ...editForm, name: value })} />
+            <EditField label="Brand / Maker" value={editForm.brand} onChange={(value) => setEditForm({ ...editForm, brand: value })} />
+            <EditField label="Reference / Serial" value={editForm.referenceNumber} onChange={(value) => setEditForm({ ...editForm, referenceNumber: value })} />
+            <EditField label="Condition / Grade" value={editForm.condition} onChange={(value) => setEditForm({ ...editForm, condition: value })} />
+            <EditField label="Cost Basis" value={editForm.costBasis} onChange={(value) => setEditForm({ ...editForm, costBasis: value })} data />
+            <EditField label="Current Estimate" value={editForm.currentValueUser} onChange={(value) => setEditForm({ ...editForm, currentValueUser: value })} data />
+            <EditField label="Date Acquired" value={editForm.acquiredDate} onChange={(value) => setEditForm({ ...editForm, acquiredDate: value })} type="date" data />
+            <EditField label="Acquired From" value={editForm.acquiredFrom} onChange={(value) => setEditForm({ ...editForm, acquiredFrom: value })} />
+          </div>
+          <label className="mt-3 block">
+            <span className="mb-2 block section-label">Notes</span>
+            <textarea className="form-input min-h-24" value={editForm.notes} onChange={(event) => setEditForm({ ...editForm, notes: event.target.value })} />
+          </label>
+          <label className="mt-3 block">
+            <span className="mb-2 block section-label">Story</span>
+            <textarea className="form-input min-h-28" value={editForm.story} onChange={(event) => setEditForm({ ...editForm, story: event.target.value })} />
+          </label>
+          <button
+            onClick={async () => {
+              await updateItemDetails(item.id, {
+                name: editForm.name,
+                brand: editForm.brand,
+                referenceNumber: editForm.referenceNumber || undefined,
+                condition: editForm.condition,
+                costBasis: Number(editForm.costBasis || 0),
+                currentValueUser: Number(editForm.currentValueUser || 0),
+                acquiredDate: editForm.acquiredDate,
+                acquiredFrom: editForm.acquiredFrom || undefined,
+                notes: editForm.notes,
+                story: editForm.story
+              });
+              setEstimate(editForm.currentValueUser);
+              setProofToast("Asset record saved.");
+            }}
+            className="mt-4 inline-flex items-center gap-2 rounded-md bg-vault-gold px-4 py-3 font-semibold text-vault-black transition hover:bg-vault-gold-light"
+          >
+            <Save size={16} />
+            Save Asset Record
+          </button>
+        </div>
+
         <div className="vault-panel rounded-lg p-5">
           <p className="section-label">Story</p>
           <p className="mt-4 text-sm leading-7 text-vault-muted">{item.story}</p>
@@ -219,6 +305,15 @@ export function ItemDetailClient({ id }: { id: string }) {
         </div>
       </section>
     </AppShell>
+  );
+}
+
+function EditField({ label, value, onChange, type = "text", data = false }: { label: string; value: string; onChange: (value: string) => void; type?: string; data?: boolean }) {
+  return (
+    <label>
+      <span className="mb-2 block section-label">{label}</span>
+      <input className={`form-input ${data ? "data" : ""}`} type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
   );
 }
 

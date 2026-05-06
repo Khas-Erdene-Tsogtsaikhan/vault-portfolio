@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { MessageSquare, Send } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { AssetImage } from "@/components/AssetImage";
 import { currency } from "@/lib/portfolio-utils";
 import { useVaultStore } from "@/lib/vault-store";
 
@@ -29,7 +29,7 @@ export function OffersClient() {
             <article key={offer.id} className="vault-panel rounded-lg p-5">
               <div className="grid gap-4 sm:grid-cols-[88px_1fr]">
                 <div className="relative h-22 min-h-24 overflow-hidden rounded-md border border-vault-border bg-vault-black">
-                  <Image src={item.photos[0]?.url} alt="" fill sizes="88px" className="object-cover" />
+                  <AssetImage src={item.photos[0]?.url} alt="" sizes="88px" />
                 </div>
                 <div>
                   <div className="flex items-start justify-between gap-3">

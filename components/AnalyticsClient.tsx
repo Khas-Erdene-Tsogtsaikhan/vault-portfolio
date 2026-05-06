@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
@@ -27,6 +26,7 @@ import {
 import { ArrowDown, ArrowUp, ChevronRight, Download, Share2 } from "lucide-react";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { AppShell } from "@/components/AppShell";
+import { AssetImage } from "@/components/AssetImage";
 import { Badge } from "@/components/Badge";
 import { marketIndices } from "@/lib/demo-data";
 import type { Category, VaultItem } from "@/lib/types";
@@ -378,7 +378,7 @@ function PositionRow({ item, index, totalValue }: { item: VaultItem; index: numb
     <motion.div layout initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }} className={`grid grid-cols-[1.6fr_0.9fr_0.85fr_0.85fr_0.85fr_0.8fr_0.8fr_0.9fr] items-center gap-3 border-b border-vault-border px-4 py-3.5 last:border-b-0 ${isAth ? "bg-vault-gold/5" : "bg-vault-card"} hover:bg-vault-gold/5`}>
       <Link href={`/collection/${item.id}`} className="flex items-center gap-3">
         <div className="relative h-9 w-9 overflow-hidden rounded border border-vault-border">
-          <Image src={item.photos[0]?.url} alt="" fill sizes="36px" className="object-cover" />
+          <AssetImage src={item.photos[0]?.url} alt="" sizes="36px" />
         </div>
         <span>
           <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>
@@ -448,7 +448,7 @@ function MoverColumn({ title, items }: { title: string; items: VaultItem[] }) {
             return (
               <article key={item.id} className="flex items-center gap-3 rounded-[8px] border border-vault-border bg-vault-surface p-3">
                 <div className="relative h-11 w-11 overflow-hidden rounded border border-vault-border">
-                  <Image src={item.photos[0]?.url} alt="" fill sizes="44px" className="object-cover" />
+                  <AssetImage src={item.photos[0]?.url} alt="" sizes="44px" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-vault-text">{item.name}</p>

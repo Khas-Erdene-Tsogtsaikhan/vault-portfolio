@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import { demoItems, demoListings, demoOffers, demoUser, demoWatchlist } from "@/lib/demo-data";
 import { buildNotificationEvents, createMockWebPushToken, defaultNotificationPrefs } from "@/lib/notifications";
 import { getTier } from "@/lib/portfolio-utils";
-import { addProofFilesToSupabaseItem, addVaultItemToSupabase, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, updateSupabaseEstimate, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
+import { addProofFilesToSupabaseItem, addVaultItemToSupabase, deleteSupabasePhoto, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, updateSupabaseEstimate, updateSupabaseItemDetails, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
 import { supabase } from "@/lib/supabase";
 import type { Category, Listing, MarketSearchResult, NotificationEvent, NotificationPreferences, Offer, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
 
@@ -54,6 +54,8 @@ interface VaultState {
   resetToDemo: () => void;
   addItem: (input: NewVaultItemInput) => Promise<VaultItem>;
   addProofFiles: (itemId: string, photoFiles: File[], documentFiles: Array<{ file: File; type: VaultDocument["type"] }>) => Promise<void>;
+  removePhoto: (itemId: string, photoId: string) => Promise<void>;
+  updateItemDetails: (itemId: string, input: Partial<Pick<VaultItem, "name" | "brand" | "referenceNumber" | "condition" | "costBasis" | "currentValueUser" | "acquiredDate" | "acquiredFrom" | "notes" | "story">>) => Promise<void>;
   updateEstimate: (itemId: string, value: number) => Promise<void>;
   toggleOpenToOffers: (itemId: string, enabled: boolean, floorPrice?: number) => Promise<void>;
   updateOfferFloor: (itemId: string, floorPrice?: number) => void;
@@ -235,6 +237,35 @@ export const useVaultStore = create<VaultState>()(
             return { ...item, photos: [...item.photos, ...photos], documents: [...documents, ...item.documents], updatedAt: now };
           })
         }));
+      },
+      removePhoto: async (itemId, photoId) => {
+        if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
+          await deleteSupabasePhoto(photoId);
+        }
+        set((state) => ({
+          items: state.items.map((item) => item.id === itemId ? { ...item, photos: item.photos.filter((photo) => photo.id !== photoId), updatedAt: new Date().toISOString() } : item)
+        }));
+      },
+      updateItemDetails: async (itemId, input) => {
+        const now = new Date().toISOString();
+        set((state) => ({
+          items: state.items.map((item) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  ...input,
+                  currentValueUpdatedAt: input.currentValueUser !== undefined ? now : item.currentValueUpdatedAt,
+                  updatedAt: now,
+                  priceHistory: input.currentValueUser !== undefined && input.currentValueUser !== item.currentValueUser
+                    ? [...item.priceHistory, { id: `${itemId}-edit-${Date.now()}`, itemId, value: input.currentValueUser, source: "user", recordedAt: now }]
+                    : item.priceHistory
+                }
+              : item
+          )
+        }));
+        if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
+          await updateSupabaseItemDetails(itemId, input);
+        }
       },
       updateEstimate: async (itemId, value) => {
         const now = new Date().toISOString();

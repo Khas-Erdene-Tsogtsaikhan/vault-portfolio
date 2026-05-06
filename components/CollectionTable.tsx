@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowUpRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/Badge";
+import { AssetImage } from "@/components/AssetImage";
 import { OpenToOffersControl } from "@/components/OpenToOffersControl";
 import { categories, type Category } from "@/lib/types";
 import { categoryLabel, currency, getCompletenessScore, getItemDailyDelta, getItemReturn, percent, preciseCurrency } from "@/lib/portfolio-utils";
@@ -73,7 +73,7 @@ export function CollectionTable() {
             >
               <Link href={`/collection/${item.id}`} className="flex items-center gap-4">
                 <div className="relative h-10 w-10 overflow-hidden rounded-md border border-vault-border">
-                  <Image src={item.photos[0]?.url} alt={item.name} fill sizes="64px" className="object-cover" />
+                  <AssetImage src={item.photos[0]?.url} alt={item.name} sizes="64px" />
                 </div>
                 <span>
                   <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>

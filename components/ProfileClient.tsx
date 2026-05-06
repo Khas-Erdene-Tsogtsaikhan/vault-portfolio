@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
 import { Award, Clock3, Diamond, Download, Flame, Grid2X2, Medal, Sparkles, TrendingUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { AssetImage } from "@/components/AssetImage";
 import { AuthCard } from "@/components/AuthCard";
 import { Badge } from "@/components/Badge";
 import { TierBadge } from "@/components/TierBadge";
@@ -75,7 +75,7 @@ export function ProfileClient() {
               <p className="mt-3 text-vault-muted">{metrics.itemCount} objects · {metrics.tier} tier · {percent.format(metrics.totalReturnPercent)} return</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {items.slice(0, 4).map((item) => <div key={item.id} className="relative aspect-square overflow-hidden rounded-md border border-vault-border"><Image src={item.photos[0]?.url} alt="" fill sizes="130px" className="object-cover" /></div>)}
+              {items.slice(0, 4).map((item) => <div key={item.id} className="relative aspect-square overflow-hidden rounded-md border border-vault-border"><AssetImage src={item.photos[0]?.url} alt="" sizes="130px" /></div>)}
             </div>
           </div>
           <button className="mt-4 flex items-center gap-2 rounded-md border border-vault-border px-4 py-3 text-vault-text"><Download size={16} /> Download share card stub</button>

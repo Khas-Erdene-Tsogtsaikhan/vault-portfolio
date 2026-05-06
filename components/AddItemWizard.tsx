@@ -194,7 +194,7 @@ export function AddItemWizard() {
           <PickedTray picked={picked} selectedValue={selectedValue} selectedCost={selectedCost} onRemove={removePicked} onUpdate={updatePicked} />
         ) : (
           <>
-            <UploadBox label="Photos" detail="Optional photos for this manual item." accept="image/*" multiple onChange={(files) => setManualPhotos(files.slice(0, 6))} />
+        <UploadBox label="Photos" detail="Optional JPG, PNG, or WebP photos for this manual item." accept="image/jpeg,image/png,image/webp" multiple onChange={(files) => setManualPhotos(files.slice(0, 6))} />
             <UploadBox label="Documents" detail="Optional receipts, certificates, or records." accept="image/*,.pdf" multiple onChange={(files) => setManualDocuments(files.map((file) => ({ file, type: "other" as const })))} />
             <SummaryPanel value={manualValue} cost={Number(form.costBasis || 0)} count={1} />
           </>
@@ -282,7 +282,7 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
               <input className="form-input data" type="date" value={item.acquiredDate} onChange={(event) => onUpdate(item.result.id, { acquiredDate: event.target.value })} />
               <input className="form-input" value={item.condition} onChange={(event) => onUpdate(item.result.id, { condition: event.target.value })} placeholder="Condition / grade" />
               <div className="grid gap-2 sm:grid-cols-2">
-                <MiniUpload label="Owner photos" accept="image/*" onChange={(files) => onUpdate(item.result.id, { photoFiles: files.slice(0, 6) })} />
+                <MiniUpload label="Owner photos" accept="image/jpeg,image/png,image/webp" onChange={(files) => onUpdate(item.result.id, { photoFiles: files.slice(0, 6) })} />
                 <MiniUpload label="Proof docs" accept="image/*,.pdf" onChange={(files) => onUpdate(item.result.id, { documentFiles: files.map((file) => ({ file, type: "other" as const })) })} />
               </div>
               <p className="text-[11px] leading-5 text-vault-faint">Default photo comes from the market match. Upload your own photos, receipt, or certificate to strengthen provenance.</p>

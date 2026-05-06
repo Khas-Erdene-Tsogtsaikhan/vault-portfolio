@@ -158,6 +158,30 @@ export async function updateSupabaseEstimate(itemId: string, value: number) {
   if (historyError) throw historyError;
 }
 
+export async function updateSupabaseItemDetails(itemId: string, input: Partial<Pick<VaultItem, "name" | "brand" | "referenceNumber" | "condition" | "costBasis" | "currentValueUser" | "acquiredDate" | "acquiredFrom" | "notes" | "story">>) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const now = new Date().toISOString();
+  const payload = {
+    ...(input.name !== undefined ? { name: input.name } : {}),
+    ...(input.brand !== undefined ? { brand: input.brand } : {}),
+    ...(input.referenceNumber !== undefined ? { reference_number: input.referenceNumber ?? null } : {}),
+    ...(input.condition !== undefined ? { condition: input.condition } : {}),
+    ...(input.costBasis !== undefined ? { cost_basis: input.costBasis } : {}),
+    ...(input.currentValueUser !== undefined ? { current_value_user: input.currentValueUser, current_value_updated_at: now } : {}),
+    ...(input.acquiredDate !== undefined ? { acquired_date: input.acquiredDate } : {}),
+    ...(input.acquiredFrom !== undefined ? { acquired_from: input.acquiredFrom ?? null } : {}),
+    ...(input.notes !== undefined ? { notes: input.notes } : {}),
+    ...(input.story !== undefined ? { story: input.story } : {}),
+    updated_at: now
+  };
+  const { error } = await supabase.from("items").update(payload).eq("id", itemId);
+  if (error) throw error;
+  if (input.currentValueUser !== undefined) {
+    const { error: historyError } = await supabase.from("price_history").insert({ item_id: itemId, value: input.currentValueUser, source: "user", recorded_at: now });
+    if (historyError) throw historyError;
+  }
+}
+
 export async function setSupabaseOpenToOffers(item: VaultItem, user: VaultUser, enabled: boolean, floorPrice?: number) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const now = new Date().toISOString();
@@ -220,6 +244,12 @@ export async function addProofFilesToSupabaseItem(itemId: string, userId: string
     uploadDocuments(itemId, userId, documentFiles)
   ]);
   return { photos, documents };
+}
+
+export async function deleteSupabasePhoto(photoId: string) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { error } = await supabase.from("photos").delete().eq("id", photoId);
+  if (error) throw error;
 }
 
 async function uploadPhotos(itemId: string, userId: string, files: File[], remoteUrls: string[] = [], useFallback = true): Promise<VaultPhoto[]> {
