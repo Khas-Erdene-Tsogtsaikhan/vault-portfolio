@@ -4,7 +4,6 @@ import Image from "next/image";
 import { Search, TrendingUp } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/Badge";
-import { WatchButton } from "@/components/WatchButton";
 import { categoryLabel, currency } from "@/lib/portfolio-utils";
 import type { MarketSearchResult } from "@/lib/types";
 
@@ -19,7 +18,7 @@ type PublicValuation = {
   suspicious?: boolean;
 };
 
-export function MarketLookup({ onSelect, compact = false }: { onSelect?: (result: MarketSearchResult) => void; compact?: boolean }) {
+export function MarketLookup({ onSelect, compact = false, selectedIds = [], actionLabel = "Use" }: { onSelect?: (result: MarketSearchResult) => void; compact?: boolean; selectedIds?: string[]; actionLabel?: string }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<MarketSearchResult[]>([]);
   const [source, setSource] = useState("");
@@ -81,8 +80,14 @@ export function MarketLookup({ onSelect, compact = false }: { onSelect?: (result
               </div>
               <div className="flex items-center gap-3 sm:justify-end">
                 <span className="data text-xl text-vault-gold">{currency.format(result.price)}</span>
-                {onSelect ? <button onClick={() => onSelect(result)} className="rounded border border-vault-border px-3 py-2 text-xs text-vault-text hover:border-vault-bright">Use</button> : null}
-                <WatchButton result={result} />
+                {onSelect ? (
+                  <button
+                    onClick={() => onSelect(result)}
+                    className={`rounded border px-3 py-2 text-xs transition ${selectedIds.includes(result.id) ? "border-vault-gold bg-vault-gold/10 text-vault-gold" : "border-vault-border text-vault-text hover:border-vault-bright"}`}
+                  >
+                    {selectedIds.includes(result.id) ? "Picked" : actionLabel}
+                  </button>
+                ) : null}
               </div>
             </article>
           ))}
