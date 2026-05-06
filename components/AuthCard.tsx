@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LogIn, LogOut, ShieldCheck } from "lucide-react";
+import { ArrowRight, LogOut, ShieldCheck } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useVaultStore } from "@/lib/vault-store";
 
@@ -55,9 +55,13 @@ export function AuthCard() {
   }
 
   return (
-    <section className="vault-panel rounded-lg p-5">
-      <p className="section-label">Production Supabase Auth</p>
-      <h2 className="mt-2 text-2xl font-semibold text-vault-text">Private access to your Vault</h2>
+    <section className="vault-panel overflow-hidden rounded-lg">
+      <div className="border-b border-vault-border bg-gradient-to-br from-vault-card to-vault-black p-6">
+        <p className="section-label">Production Supabase Auth</p>
+        <h2 className="mt-3 font-serif text-4xl font-light leading-tight text-vault-text">Private access to your Vault</h2>
+        <p className="mt-3 text-sm leading-6 text-vault-muted">Create your collector account, verify email, and persist every asset to Supabase.</p>
+      </div>
+      <div className="p-6">
       {authStatus === "authenticated" ? (
         <div className="mt-4 rounded-lg border border-vault-gold/25 bg-vault-gold/10 p-4">
           <div className="flex items-center gap-2 text-vault-gold">
@@ -71,21 +75,33 @@ export function AuthCard() {
           </button>
         </div>
       ) : null}
-      <p className="mt-3 text-sm leading-6 text-vault-muted">{authError ?? message}</p>
-      <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-        <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="form-input" />
-        <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Password" className="form-input" />
-        <button onClick={submitEmailPassword} className="inline-flex items-center justify-center gap-2 rounded-md bg-vault-gold px-4 py-3 font-semibold text-vault-black">
-          <LogIn size={16} />
-          {mode === "signup" ? "Create Account" : "Sign In"}
-        </button>
-        <button onClick={signInWithGoogle} className="rounded-md border border-vault-border px-4 py-3 font-semibold text-vault-text transition hover:border-vault-bright">Google</button>
+      <p className="text-sm leading-6 text-vault-muted">{authError ?? message}</p>
+
+      <div className="mt-5 grid gap-4">
+        <label>
+          <span className="mb-2 block section-label">Email</span>
+          <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" className="form-input w-full" />
+        </label>
+        <label>
+          <span className="mb-2 block section-label">Password</span>
+          <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" placeholder="Minimum 6 characters" className="form-input w-full" />
+        </label>
       </div>
-      <div className="mt-4 flex items-center justify-between gap-3 text-xs text-vault-faint">
-        <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="text-vault-gold transition hover:text-vault-gold-light">
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto] lg:grid-cols-1 xl:grid-cols-[1fr_auto]">
+        <button onClick={submitEmailPassword} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-vault-gold px-5 py-3 text-sm font-semibold text-vault-black transition hover:bg-vault-gold-light">
+          {mode === "signup" ? "Create Account" : "Sign In"}
+          <ArrowRight size={16} />
+        </button>
+        <button onClick={signInWithGoogle} className="inline-flex min-h-12 items-center justify-center rounded-md border border-vault-border px-5 py-3 text-sm font-semibold text-vault-text transition hover:-translate-y-0.5 hover:border-vault-bright">Continue with Google</button>
+      </div>
+
+      <div className="mt-5 flex flex-col gap-2 border-t border-vault-border pt-4 text-xs text-vault-faint sm:flex-row sm:items-center sm:justify-between">
+        <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="text-left text-vault-gold transition hover:text-vault-gold-light">
           {mode === "signin" ? "Need an account? Sign up with email verification." : "Already verified? Sign in."}
         </button>
         <span>{isSupabaseConfigured ? `Supabase ${authStatus}.` : "Supabase not configured. Using local demo state."}</span>
+      </div>
       </div>
     </section>
   );

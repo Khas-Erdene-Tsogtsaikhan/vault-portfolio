@@ -21,7 +21,7 @@ export function ProfileClient() {
 
   return (
     <AppShell>
-      <section className="grid gap-6 lg:grid-cols-[1fr_380px]">
+      <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(440px,520px)]">
         <div className="vault-panel rounded-lg p-6">
           <p className="section-label">Collector Identity</p>
           <h1 className="mt-3 font-serif text-6xl font-light text-vault-text">@{user.username}</h1>
