@@ -58,7 +58,7 @@ export function normalizePriceKey(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-export async function searchPriceCharting(rawQuery: string, limit = 5): Promise<CachedPricePayload> {
+export async function searchPriceCharting(rawQuery: string, limit = 20): Promise<CachedPricePayload> {
   const query = rawQuery.trim();
   const identifier = normalizePriceKey(query);
   const cached = await readCache(identifier);
@@ -72,7 +72,10 @@ export async function searchPriceCharting(rawQuery: string, limit = 5): Promise<
   }
 
   const matches = await enqueuePriceChartingCall(() => fetchProducts(token, query, limit));
-  const results = matches.slice(0, Math.min(limit, 10)).map((product) => productSummaryToResult(product, query));
+  const results = await Promise.all(matches.slice(0, Math.min(limit, 20)).map(async (product) => {
+    const detailCache = await readCache(normalizePriceKey(`pc-${product.id}`));
+    return detailCache?.results[0] ?? productSummaryToResult(product, query);
+  }));
   const valuation = resultsToValuation(results);
   const payload = { results, valuation, source: "pricecharting_api" };
   await writeCache(identifier, payload);
@@ -143,7 +146,7 @@ function productToResult(product: PriceChartingProduct, query: string, preferred
     id: `pricecharting-${product.id}-${option.field}`,
     title: product["product-name"],
     category: inferPriceChartingCategory(product),
-    imageUrl: normalizeImageUrl(product["image-url"]),
+    imageUrl: normalizeImageUrl(product["image-url"]) ?? priceChartingImageProxyUrl(product),
     price: option.value,
     source: "PriceCharting Guide Value",
     confidence: salesVolume >= 100 ? "High" : salesVolume >= 20 ? "Medium" : "Low",
@@ -170,7 +173,7 @@ function productSummaryToResult(product: Pick<PriceChartingProduct, "id" | "prod
     id: `pricecharting-${product.id}`,
     title: product["product-name"],
     category: inferPriceChartingCategory(product as PriceChartingProduct),
-    imageUrl: priceChartingImageUrl(product.id),
+    imageUrl: priceChartingImageProxyUrl(product),
     price: 0,
     source: "PriceCharting Product Search",
     confidence: "Low",
@@ -301,7 +304,7 @@ function mockPayload(query: string): CachedPricePayload {
     id: `mock-${normalizePriceKey(query)}`,
     "product-name": query || "Charizard Base Set",
     "console-name": /game|mario|zelda|pokemon/i.test(query) ? "Pokemon Cards" : "PriceCharting Demo",
-    "image-url": priceChartingImageUrl(`mock-${normalizePriceKey(query)}`),
+    "image-url": undefined,
     "sales-volume": 124,
     "loose-price": 18400,
     "graded-price": 91000,
@@ -330,8 +333,12 @@ function normalizeImageUrl(value: unknown) {
   return `https://www.pricecharting.com${value}`;
 }
 
-function priceChartingImageUrl(productId: string) {
-  return `https://images.pricecharting.com/products/${productId}/200.jpg`;
+function priceChartingImageProxyUrl(product: Pick<PriceChartingProduct, "product-name" | "console-name">) {
+  const params = new URLSearchParams({
+    name: product["product-name"],
+    console: product["console-name"]
+  });
+  return `/api/market/image?${params.toString()}`;
 }
 
 function centsToDollars(value: unknown) {

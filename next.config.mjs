@@ -21,6 +21,10 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "images.pricecharting.com"
+      },
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com"
       }
     ]
   }

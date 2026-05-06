@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Search, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { categoryLabel, currency } from "@/lib/portfolio-utils";
 import type { MarketSearchResult } from "@/lib/types";
@@ -25,17 +25,50 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
   const [valuation, setValuation] = useState<PublicValuation | null>(null);
   const [loading, setLoading] = useState(false);
   const [pickingId, setPickingId] = useState<string | null>(null);
+  const [hydratingIds, setHydratingIds] = useState<string[]>([]);
+  const searchRun = useRef(0);
 
   async function searchFor(value = query) {
     if (!value.trim()) return;
+    const run = searchRun.current + 1;
+    searchRun.current = run;
     setQuery(value);
     setLoading(true);
-    const response = await fetch(`/api/market/search?q=${encodeURIComponent(value)}&limit=5`);
+    setValuation(null);
+    setHydratingIds([]);
+    const response = await fetch(`/api/market/search?q=${encodeURIComponent(value)}&limit=20`);
     const data = await response.json() as { results: MarketSearchResult[]; source: string; valuation?: PublicValuation };
     setResults(data.results);
     setSource(data.source);
     setValuation(data.valuation ?? null);
     setLoading(false);
+    void hydratePrices(data.results, run, value);
+  }
+
+  async function hydratePrices(searchResults: MarketSearchResult[], run: number, searchQuery: string) {
+    for (const result of searchResults) {
+      if (searchRun.current !== run) return;
+      if (!result.pricechartingId || result.priceOptions?.length || result.price > 0) continue;
+      setHydratingIds((current) => current.includes(result.id) ? current : [...current, result.id]);
+      try {
+        const response = await fetch(`/api/market/product?id=${encodeURIComponent(result.pricechartingId)}&q=${encodeURIComponent(searchQuery || result.title)}`);
+        const data = await response.json() as { results: MarketSearchResult[] };
+        const priced = data.results[0];
+        if (!priced || searchRun.current !== run) continue;
+        setResults((current) => current.map((item) => item.pricechartingId === priced.pricechartingId ? { ...priced, id: item.id } : item));
+        setValuation((current) => current?.marketValue ? current : {
+          marketValue: priced.price,
+          priceLow: priced.priceLow ?? priced.price,
+          priceHigh: priced.priceHigh ?? priced.price,
+          sampleSize: priced.soldCount ?? 1,
+          lastSalePrice: priced.lastSalePrice ?? priced.price,
+          lastSaleDate: priced.lastSaleDate ?? null,
+          confidence: priced.priceConfidence ?? "LOW"
+        });
+      } finally {
+        setHydratingIds((current) => current.filter((id) => id !== result.id));
+      }
+    }
   }
 
   async function pickResult(result: MarketSearchResult) {
@@ -104,14 +137,14 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
                 <p className="mt-2 text-xs text-vault-muted">{result.condition ?? "Guide value"} · {result.pricechartingConsole ?? "PriceCharting"} · {result.priceConfidence ?? result.confidence} confidence · {result.soldCount ?? 0} yearly sales signal</p>
               </div>
               <div className="flex items-center gap-3 sm:justify-end">
-                <span className="data text-xl text-vault-gold">{result.price > 0 ? currency.format(result.price) : "Select"}</span>
+                <span className="data text-xl text-vault-gold">{result.price > 0 ? currency.format(result.price) : hydratingIds.includes(result.id) ? "Loading" : "Select"}</span>
                 {onSelect ? (
                   <button
                     onClick={() => void pickResult(result)}
                     disabled={pickingId === result.id}
                     className={`rounded border px-3 py-2 text-xs transition ${selectedIds.includes(result.id) ? "border-vault-gold bg-vault-gold/10 text-vault-gold" : "border-vault-border text-vault-text hover:border-vault-bright"}`}
                   >
-                    {pickingId === result.id ? "Loading value" : selectedIds.includes(result.id) ? "Picked" : actionLabel}
+                    {pickingId === result.id ? "Loading value" : selectedIds.includes(result.id) ? "Picked" : result.price > 0 ? actionLabel : "Load + Pick"}
                   </button>
                 ) : null}
               </div>
