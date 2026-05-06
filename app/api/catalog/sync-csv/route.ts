@@ -7,6 +7,13 @@ export const dynamic = "force-dynamic";
 const batchSize = 750;
 
 export async function POST(request: Request) {
+  if (process.env.CATALOG_SYNC_ENABLED !== "true") {
+    return NextResponse.json({
+      error: "Catalog sync is disabled.",
+      nextStep: "Set CATALOG_SYNC_ENABLED=true only when running a controlled import job. Do not run full PriceCharting CSV syncs through this endpoint while Supabase is recovering."
+    }, { status: 423 });
+  }
+
   const secret = process.env.MARKET_REFRESH_SECRET;
   const provided = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
   if (secret && provided !== secret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
