@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Download, FileText, FileUp, ImagePlus, Pencil, Save, Share2, Star, Trash2 } from "lucide-react";
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AssetImage } from "@/components/AssetImage";
@@ -24,11 +25,13 @@ import { documentTypeLabels, documentTypes, type MarketComp, type VaultDocument,
 import { useVaultStore } from "@/lib/vault-store";
 
 export function ItemDetailClient({ id }: { id: string }) {
+  const router = useRouter();
   const items = useVaultStore((state) => state.items);
   const updateEstimate = useVaultStore((state) => state.updateEstimate);
   const updateItemDetails = useVaultStore((state) => state.updateItemDetails);
   const addProofFiles = useVaultStore((state) => state.addProofFiles);
   const removePhoto = useVaultStore((state) => state.removePhoto);
+  const removeItem = useVaultStore((state) => state.removeItem);
   const setPrimaryPhoto = useVaultStore((state) => state.setPrimaryPhoto);
   const item = items.find((candidate) => candidate.id === id);
   const [activePhoto, setActivePhoto] = useState(0);
@@ -174,6 +177,23 @@ export function ItemDetailClient({ id }: { id: string }) {
 
           <div className="mt-4">
             <OpenToOffersControl item={item} />
+          </div>
+
+          <div className="mt-6 rounded-md border border-vault-red/25 bg-vault-red/5 p-4">
+            <p className="section-label">Remove Asset</p>
+            <p className="mt-2 text-xs leading-5 text-vault-muted">Deletes this item from your collection view and removes its attached portfolio record.</p>
+            <button
+              onClick={async () => {
+                const confirmed = window.confirm(`Remove "${item.name}" from your Vault? This also removes its photos and documents from this asset record.`);
+                if (!confirmed) return;
+                await removeItem(item.id);
+                router.push("/collection");
+              }}
+              className="mt-3 inline-flex items-center gap-2 rounded-md border border-vault-red/40 px-4 py-2 text-sm font-semibold text-vault-red transition hover:bg-vault-red/10"
+            >
+              <Trash2 size={15} />
+              Remove from Collection
+            </button>
           </div>
         </div>
       </section>

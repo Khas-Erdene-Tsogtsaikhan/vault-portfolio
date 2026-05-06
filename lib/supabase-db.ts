@@ -252,6 +252,13 @@ export async function deleteSupabasePhoto(photoId: string) {
   if (error) throw error;
 }
 
+export async function deleteSupabaseItem(itemId: string, userId: string) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { error } = await supabase.from("items").delete().eq("id", itemId).eq("user_id", userId);
+  if (error) throw error;
+  await refreshProfileRollups(userId);
+}
+
 export async function setSupabasePrimaryPhoto(itemId: string, photoId: string) {
   if (!supabase) throw new Error("Supabase is not configured.");
   const { error: clearError } = await supabase.from("photos").update({ is_primary: false }).eq("item_id", itemId);

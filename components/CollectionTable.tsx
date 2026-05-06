@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Save, Search } from "lucide-react";
+import { ArrowUpRight, Save, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { AssetImage } from "@/components/AssetImage";
@@ -17,6 +17,7 @@ export function CollectionTable() {
   const items = useVaultStore((state) => state.items);
   const lastAdded = useVaultStore((state) => state.lastAddedItemId);
   const updateItemDetails = useVaultStore((state) => state.updateItemDetails);
+  const removeItem = useVaultStore((state) => state.removeItem);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<Category | "all">("all");
   const [sort, setSort] = useState<SortKey>("value");
@@ -48,6 +49,15 @@ export function CollectionTable() {
     setBulkMessage(`${selectedIds.length} asset${selectedIds.length === 1 ? "" : "s"} updated.`);
     setSelectedIds([]);
     setBulkForm({ condition: "", acquiredDate: "", currentValueUser: "" });
+  }
+
+  async function removeSelected() {
+    if (!selectedIds.length) return;
+    const confirmed = window.confirm(`Remove ${selectedIds.length} selected asset${selectedIds.length === 1 ? "" : "s"} from your Vault?`);
+    if (!confirmed) return;
+    await Promise.all(selectedIds.map((id) => removeItem(id)));
+    setBulkMessage(`${selectedIds.length} asset${selectedIds.length === 1 ? "" : "s"} removed.`);
+    setSelectedIds([]);
   }
 
   function toggleSelected(id: string, selected: boolean) {
@@ -93,6 +103,10 @@ export function CollectionTable() {
               <Save size={15} />
               Apply
             </button>
+            <button onClick={removeSelected} className="inline-flex items-center justify-center gap-2 rounded-md border border-vault-red/40 px-4 py-3 text-sm font-semibold text-vault-red transition hover:bg-vault-red/10">
+              <Trash2 size={15} />
+              Remove
+            </button>
           </div>
         </motion.section>
       ) : bulkMessage ? (
@@ -100,9 +114,9 @@ export function CollectionTable() {
       ) : null}
 
       <div className="vault-table">
-        <div className="hidden grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr] border-b border-vault-border px-4 py-3 text-[9px] uppercase tracking-[0.15em] text-vault-faint lg:grid">
+        <div className="hidden grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr_42px] border-b border-vault-border px-4 py-3 text-[9px] uppercase tracking-[0.15em] text-vault-faint lg:grid">
           <button onClick={() => setSelectedIds(selectedIds.length === rows.length ? [] : rows.map((item) => item.id))} className="h-4 w-4 rounded border border-vault-border" aria-label="Select all visible assets" />
-          <span>Asset</span><span>Category</span><span>Value</span><span>Today</span><span>Docs</span><span>Liquidity</span>
+          <span>Asset</span><span>Category</span><span>Value</span><span>Today</span><span>Docs</span><span>Liquidity</span><span />
         </div>
         {rows.map((item) => {
           const itemReturn = getItemReturn(item);
@@ -114,7 +128,7 @@ export function CollectionTable() {
               key={item.id}
               initial={item.id === lastAdded ? { opacity: 0, y: -18 } : false}
               animate={{ opacity: 1, y: 0 }}
-              className={`grid gap-4 border-b border-vault-border bg-vault-card px-4 py-3.5 transition last:border-b-0 hover:bg-vault-gold/5 lg:grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr] lg:items-center ${selected ? "bg-vault-gold/10" : ""}`}
+              className={`grid gap-4 border-b border-vault-border bg-vault-card px-4 py-3.5 transition last:border-b-0 hover:bg-vault-gold/5 lg:grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr_42px] lg:items-center ${selected ? "bg-vault-gold/10" : ""}`}
             >
               <label className="flex items-center">
                 <input
@@ -148,6 +162,17 @@ export function CollectionTable() {
                 <ArrowUpRight size={15} />
               </span>
               <OpenToOffersControl item={item} compact />
+              <button
+                onClick={async () => {
+                  const confirmed = window.confirm(`Remove "${item.name}" from your Vault?`);
+                  if (!confirmed) return;
+                  await removeItem(item.id);
+                }}
+                className="inline-flex h-9 w-9 items-center justify-center rounded border border-vault-border text-vault-muted transition hover:border-vault-red hover:text-vault-red"
+                aria-label={`Remove ${item.name}`}
+              >
+                <Trash2 size={15} />
+              </button>
             </motion.div>
           );
         })}

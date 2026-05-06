@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import { demoItems, demoListings, demoOffers, demoUser, demoWatchlist } from "@/lib/demo-data";
 import { buildNotificationEvents, createMockWebPushToken, defaultNotificationPrefs } from "@/lib/notifications";
 import { getTier } from "@/lib/portfolio-utils";
-import { addProofFilesToSupabaseItem, addVaultItemToSupabase, deleteSupabasePhoto, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, setSupabasePrimaryPhoto, updateSupabaseEstimate, updateSupabaseItemDetails, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
+import { addProofFilesToSupabaseItem, addVaultItemToSupabase, deleteSupabaseItem, deleteSupabasePhoto, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, setSupabasePrimaryPhoto, updateSupabaseEstimate, updateSupabaseItemDetails, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
 import { supabase } from "@/lib/supabase";
 import type { Category, Listing, MarketSearchResult, NotificationEvent, NotificationPreferences, Offer, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
 
@@ -55,6 +55,7 @@ interface VaultState {
   addItem: (input: NewVaultItemInput) => Promise<VaultItem>;
   addProofFiles: (itemId: string, photoFiles: File[], documentFiles: Array<{ file: File; type: VaultDocument["type"] }>) => Promise<void>;
   removePhoto: (itemId: string, photoId: string) => Promise<void>;
+  removeItem: (itemId: string) => Promise<void>;
   setPrimaryPhoto: (itemId: string, photoId: string) => Promise<void>;
   updateItemDetails: (itemId: string, input: Partial<Pick<VaultItem, "name" | "brand" | "referenceNumber" | "condition" | "costBasis" | "currentValueUser" | "acquiredDate" | "acquiredFrom" | "notes" | "story">>) => Promise<void>;
   updateEstimate: (itemId: string, value: number) => Promise<void>;
@@ -259,6 +260,23 @@ export const useVaultStore = create<VaultState>()(
             return { ...item, photos, updatedAt: new Date().toISOString() };
           })
         }));
+      },
+      removeItem: async (itemId) => {
+        const state = get();
+        if (supabase && state.authStatus === "authenticated" && state.user.id !== demoUser.id) {
+          await deleteSupabaseItem(itemId, state.user.id);
+        }
+        set((current) => {
+          const items = current.items.filter((item) => item.id !== itemId);
+          const totalValue = items.reduce((sum, item) => sum + (item.currentValueMarket ?? item.currentValueUser), 0);
+          return {
+            items,
+            listings: current.listings.filter((listing) => listing.itemId !== itemId),
+            offers: current.offers.filter((offer) => offer.itemId !== itemId),
+            lastAddedItemId: current.lastAddedItemId === itemId ? undefined : current.lastAddedItemId,
+            user: { ...current.user, tier: getTier(totalValue), totalItems: items.length, totalValueCached: totalValue }
+          };
+        });
       },
       setPrimaryPhoto: async (itemId, photoId) => {
         if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
