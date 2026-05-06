@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -55,7 +54,7 @@ export function AddItemWizard() {
       return;
     }
     setPicked((current) => {
-      if (current.some((item) => item.result.pricechartingId === result.pricechartingId && item.result.pricechartingPriceField === result.pricechartingPriceField)) return current;
+      if (current.some((item) => item.result.id === result.id)) return current.filter((item) => item.result.id !== result.id);
       return [
         ...current,
         {
@@ -315,7 +314,7 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
           <article key={item.result.id} className="rounded-[10px] border border-vault-border bg-vault-black p-3">
             <div className="flex gap-3">
               <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-vault-border bg-vault-surface">
-                {item.result.imageUrl ? <Image src={item.result.imageUrl} alt="" fill sizes="56px" className="object-cover" /> : null}
+                {item.result.imageUrl ? <TrayImage src={item.result.imageUrl} alt="" /> : null}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 text-sm font-medium text-vault-text">{item.result.title}</p>
@@ -364,6 +363,15 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
       </div>
     </div>
   );
+}
+
+function TrayImage({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <Sparkles className="m-4 text-vault-gold" size={20} />;
+
+  // Market image URLs can be local dynamic proxy routes, so bypass Next image optimization here.
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt={alt} className="h-full w-full object-cover" onError={() => setFailed(true)} />;
 }
 
 function MiniDocumentUpload({ onChange }: { onChange: (documents: Array<{ file: File; type: VaultDocument["type"] }>) => void }) {

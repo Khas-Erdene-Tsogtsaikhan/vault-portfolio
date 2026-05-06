@@ -67,7 +67,7 @@ export function MarketLookup({
     setValuation(null);
     setResults([]);
 
-    const response = await fetch(`/api/market/search?q=${encodeURIComponent(trimmed)}&limit=20`);
+    const response = await fetch(`/api/market/search?q=${encodeURIComponent(trimmed)}&limit=100`);
     const data = await response.json() as { results: MarketSearchResult[]; source: string; valuation?: PublicValuation };
     if (searchRun.current !== run) return;
 
@@ -261,6 +261,7 @@ function Confidence({ confidence }: { confidence: PublicValuation["confidence"] 
 
 function sourceLabel(source: string) {
   if (source === "pricecharting_api") return "PriceCharting API";
+  if (source === "pricecharting_catalog") return "VAULT local PriceCharting catalog";
   if (source === "pricecharting_cache") return "VAULT price cache";
   if (source === "mock") return "VAULT demo PriceCharting model";
   return "PriceCharting";
