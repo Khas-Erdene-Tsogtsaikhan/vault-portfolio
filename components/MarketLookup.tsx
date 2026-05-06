@@ -25,10 +25,11 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
   const [valuation, setValuation] = useState<PublicValuation | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function search() {
-    if (!query.trim()) return;
+  async function searchFor(value = query) {
+    if (!value.trim()) return;
+    setQuery(value);
     setLoading(true);
-    const response = await fetch(`/api/market/search?q=${encodeURIComponent(query)}&limit=20`);
+    const response = await fetch(`/api/market/search?q=${encodeURIComponent(value)}&limit=20`);
     const data = await response.json() as { results: MarketSearchResult[]; source: string; valuation?: PublicValuation };
     setResults(data.results);
     setSource(data.source);
@@ -41,11 +42,18 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
       <div className="flex flex-col gap-3 sm:flex-row">
         <label className="relative flex-1">
           <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-vault-faint" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void search(); }} className="form-input pl-10" placeholder="Search sold comps: Charizard Base Set PSA 10, Jordan 1 Bred Toe Size 10..." />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchFor(); }} className="form-input pl-10" placeholder="Search sold comps: Charizard Base Set PSA 10, Jordan 1 Bred Toe Size 10..." />
         </label>
-        <button onClick={search} className="rounded bg-vault-gold px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light">
+        <button onClick={() => searchFor()} className="rounded bg-vault-gold px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light">
           {loading ? "Searching" : "Search Sold Value"}
         </button>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {["Charizard Base Set PSA 10", "Jordan 1 Bred Toe Size 10", "Pokemon Moonbreon PSA 10"].map((example) => (
+          <button key={example} onClick={() => searchFor(example)} className="rounded border border-vault-border bg-vault-black px-3 py-1.5 text-[11px] text-vault-muted transition hover:border-vault-bright hover:text-vault-text">
+            {example}
+          </button>
+        ))}
       </div>
       {source ? <p className="mt-3 text-xs text-vault-faint">Source: {source === "ebay_finding_api" ? "eBay Finding API sold listings" : "VAULT fallback sold-listing model"} · SoldItemsOnly valuation with IQR outlier removal.</p> : null}
 

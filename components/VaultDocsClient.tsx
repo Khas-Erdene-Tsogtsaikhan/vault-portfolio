@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BadgeCheck, FileText, Image as ImageIcon } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { categoryLabel, getCompletenessScore } from "@/lib/portfolio-utils";
+import { documentTypeLabels } from "@/lib/types";
 import { useVaultStore } from "@/lib/vault-store";
 
 export function VaultDocsClient() {
@@ -30,8 +31,14 @@ export function VaultDocsClient() {
           <div className="mt-5 space-y-3">
             {docs.map(({ document, item }) => (
               <Link href={`/collection/${item.id}`} key={document.id} className="flex items-center justify-between rounded-md border border-vault-border bg-vault-surface p-4 transition hover:border-vault-bright">
-                <span className="flex items-center gap-3 text-sm text-vault-text"><FileText size={16} className="text-vault-gold" />{document.filename}</span>
-                <span className="text-xs text-vault-muted">{item.name}</span>
+                <span className="flex min-w-0 items-center gap-3 text-sm text-vault-text">
+                  <FileText size={16} className="shrink-0 text-vault-gold" />
+                  <span className="min-w-0">
+                    <span className="block truncate">{document.filename}</span>
+                    <span className="mt-1 inline-flex rounded border border-vault-border bg-vault-black px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-vault-muted">{documentTypeLabels[document.type]}</span>
+                  </span>
+                </span>
+                <span className="shrink-0 pl-4 text-xs text-vault-muted">{item.name}</span>
               </Link>
             ))}
             {!docs.length ? <p className="rounded-md border border-dashed border-vault-border p-5 text-sm leading-6 text-vault-muted">No documents yet. Open any asset file from Collection and attach a receipt, certificate, appraisal, or authenticity record.</p> : null}

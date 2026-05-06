@@ -41,6 +41,36 @@ export function DashboardClient() {
   const beatingMarket = metrics.totalReturnPercent > index.ytdReturn;
   const holdings = useMemo(() => [...items].sort((a, b) => getCurrentValue(b) - getCurrentValue(a)), [items]);
 
+  if (!items.length) {
+    return (
+      <AppShell>
+        <section className="vault-hero rounded-[14px] border border-vault-gold-dim p-8 sm:p-12">
+          <p className="hero-label">Your First Vault Position</p>
+          <h1 className="mt-3 max-w-4xl font-serif text-6xl font-light leading-none text-vault-text sm:text-7xl">Every serious portfolio starts with one documented asset.</h1>
+          <p className="mt-5 max-w-2xl text-sm leading-7 text-vault-muted">Search sold comps, add your cost basis, and attach owner proof. Once the first asset lands here, VAULT starts tracking your physical wealth like a financial terminal.</p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-[10px] border border-vault-border bg-vault-card p-4">
+              <p className="section-label">Step 1</p>
+              <p className="mt-2 text-sm text-vault-text">Search market value</p>
+            </div>
+            <div className="rounded-[10px] border border-vault-border bg-vault-card p-4">
+              <p className="section-label">Step 2</p>
+              <p className="mt-2 text-sm text-vault-text">Add what you paid</p>
+            </div>
+            <div className="rounded-[10px] border border-vault-border bg-vault-card p-4">
+              <p className="section-label">Step 3</p>
+              <p className="mt-2 text-sm text-vault-text">Attach proof</p>
+            </div>
+          </div>
+          <Link href="/add" className="mt-8 inline-flex items-center gap-2 rounded bg-vault-gold px-5 py-3 text-sm font-semibold text-vault-black transition hover:bg-vault-gold-light">
+            <Plus size={16} />
+            Add First Asset
+          </Link>
+        </section>
+      </AppShell>
+    );
+  }
+
   return (
     <AppShell>
       <AnimatePresence>

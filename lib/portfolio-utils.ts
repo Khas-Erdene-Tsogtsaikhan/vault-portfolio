@@ -1,4 +1,4 @@
-import { categories, type Category, type TierName, type VaultItem, type VaultMilestone } from "@/lib/types";
+import { categories, type Category, type TierName, type VaultItem, type VaultMilestone, type VaultPhoto } from "@/lib/types";
 
 export const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 export const preciseCurrency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -81,6 +81,10 @@ export function categoryLabel(category: Category) {
 
 export function getCurrentValue(item: VaultItem) {
   return item.currentValueUser;
+}
+
+export function getPrimaryPhoto(photos: VaultPhoto[]) {
+  return photos.find((photo) => photo.isPrimary) ?? photos[0];
 }
 
 export function getItemReturn(item: VaultItem) {

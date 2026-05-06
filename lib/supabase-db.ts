@@ -238,9 +238,9 @@ export async function insertSupabaseNotificationEvents(events: NotificationEvent
   if (error) throw error;
 }
 
-export async function addProofFilesToSupabaseItem(itemId: string, userId: string, photoFiles: File[], documentFiles: Array<{ file: File; type: VaultDocument["type"] }>) {
+export async function addProofFilesToSupabaseItem(itemId: string, userId: string, photoFiles: File[], documentFiles: Array<{ file: File; type: VaultDocument["type"] }>, existingPhotoCount = 0) {
   const [photos, documents] = await Promise.all([
-    uploadPhotos(itemId, userId, photoFiles, [], false),
+    uploadPhotos(itemId, userId, photoFiles, [], false, existingPhotoCount + 1, existingPhotoCount === 0),
     uploadDocuments(itemId, userId, documentFiles)
   ]);
   return { photos, documents };
@@ -252,7 +252,15 @@ export async function deleteSupabasePhoto(photoId: string) {
   if (error) throw error;
 }
 
-async function uploadPhotos(itemId: string, userId: string, files: File[], remoteUrls: string[] = [], useFallback = true): Promise<VaultPhoto[]> {
+export async function setSupabasePrimaryPhoto(itemId: string, photoId: string) {
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { error: clearError } = await supabase.from("photos").update({ is_primary: false }).eq("item_id", itemId);
+  if (clearError) throw clearError;
+  const { error } = await supabase.from("photos").update({ is_primary: true }).eq("id", photoId);
+  if (error) throw error;
+}
+
+async function uploadPhotos(itemId: string, userId: string, files: File[], remoteUrls: string[] = [], useFallback = true, startOrder = 1, allowPrimary = true): Promise<VaultPhoto[]> {
   if (!supabase) return [];
   if (!files.length && !remoteUrls.length && useFallback) {
     return [{ id: `${itemId}-fallback-photo`, itemId, url: fallbackImage, order: 1, isPrimary: true, createdAt: new Date().toISOString() }];
@@ -262,7 +270,7 @@ async function uploadPhotos(itemId: string, userId: string, files: File[], remot
   const remotePhotoUrls = remoteUrls.slice(0, 6);
   for (let index = 0; index < remotePhotoUrls.length; index += 1) {
     const url = remotePhotoUrls[index];
-    rows.push({ item_id: itemId, url, order: index + 1, is_primary: index === 0 });
+    rows.push({ item_id: itemId, url, order: startOrder + index, is_primary: allowPrimary && index === 0 });
   }
   const uploadFiles = files.slice(0, 6);
   for (let index = 0; index < uploadFiles.length; index += 1) {
@@ -271,8 +279,8 @@ async function uploadPhotos(itemId: string, userId: string, files: File[], remot
     const { error } = await supabase.storage.from(storageBuckets.photos).upload(path, file, { upsert: false });
     if (error) throw error;
     const { data } = supabase.storage.from(storageBuckets.photos).getPublicUrl(path);
-    const order = remoteUrls.length + index + 1;
-    rows.push({ item_id: itemId, url: data.publicUrl, order, is_primary: remoteUrls.length === 0 && index === 0 });
+    const order = startOrder + remoteUrls.length + index;
+    rows.push({ item_id: itemId, url: data.publicUrl, order, is_primary: allowPrimary && remoteUrls.length === 0 && index === 0 });
   }
   if (!rows.length) return [];
   const { data, error } = await supabase.from("photos").insert(rows).select("*");

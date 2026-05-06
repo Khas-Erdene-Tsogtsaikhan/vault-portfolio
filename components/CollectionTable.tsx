@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowUpRight, Search } from "lucide-react";
+import { ArrowUpRight, Save, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { AssetImage } from "@/components/AssetImage";
 import { OpenToOffersControl } from "@/components/OpenToOffersControl";
 import { categories, type Category } from "@/lib/types";
-import { categoryLabel, currency, getCompletenessScore, getItemDailyDelta, getItemReturn, percent, preciseCurrency } from "@/lib/portfolio-utils";
+import { categoryLabel, currency, getCompletenessScore, getItemDailyDelta, getItemReturn, getPrimaryPhoto, percent, preciseCurrency } from "@/lib/portfolio-utils";
 import { useVaultStore } from "@/lib/vault-store";
 
 type SortKey = "value" | "return" | "delta" | "acquired" | "documents";
@@ -16,9 +16,13 @@ type SortKey = "value" | "return" | "delta" | "acquired" | "documents";
 export function CollectionTable() {
   const items = useVaultStore((state) => state.items);
   const lastAdded = useVaultStore((state) => state.lastAddedItemId);
+  const updateItemDetails = useVaultStore((state) => state.updateItemDetails);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<Category | "all">("all");
   const [sort, setSort] = useState<SortKey>("value");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkForm, setBulkForm] = useState({ condition: "", acquiredDate: "", currentValueUser: "" });
+  const [bulkMessage, setBulkMessage] = useState("");
 
   const rows = useMemo(() => {
     return items
@@ -32,6 +36,24 @@ export function CollectionTable() {
         return b.currentValueUser - a.currentValueUser;
       });
   }, [category, items, query, sort]);
+
+  async function applyBulkEdit() {
+    const patch = {
+      ...(bulkForm.condition ? { condition: bulkForm.condition } : {}),
+      ...(bulkForm.acquiredDate ? { acquiredDate: bulkForm.acquiredDate } : {}),
+      ...(bulkForm.currentValueUser ? { currentValueUser: Number(bulkForm.currentValueUser) } : {})
+    };
+    if (!selectedIds.length || !Object.keys(patch).length) return;
+    await Promise.all(selectedIds.map((id) => updateItemDetails(id, patch)));
+    setBulkMessage(`${selectedIds.length} asset${selectedIds.length === 1 ? "" : "s"} updated.`);
+    setSelectedIds([]);
+    setBulkForm({ condition: "", acquiredDate: "", currentValueUser: "" });
+  }
+
+  function toggleSelected(id: string, selected: boolean) {
+    setSelectedIds((current) => selected ? Array.from(new Set([...current, id])) : current.filter((itemId) => itemId !== id));
+    setBulkMessage("");
+  }
 
   return (
     <div>
@@ -57,23 +79,55 @@ export function CollectionTable() {
         </div>
       </section>
 
+      {selectedIds.length ? (
+        <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-4 rounded-lg border border-vault-gold/30 bg-vault-gold/10 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
+            <div className="min-w-0 flex-1">
+              <p className="section-label">Bulk Asset Edit</p>
+              <p className="mt-1 text-sm text-vault-text">{selectedIds.length} selected. Apply shared economics or condition metadata in one move.</p>
+            </div>
+            <input className="form-input lg:w-44" value={bulkForm.condition} onChange={(event) => setBulkForm({ ...bulkForm, condition: event.target.value })} placeholder="Condition / grade" />
+            <input className="form-input data lg:w-44" type="date" value={bulkForm.acquiredDate} onChange={(event) => setBulkForm({ ...bulkForm, acquiredDate: event.target.value })} />
+            <input className="form-input data lg:w-44" value={bulkForm.currentValueUser} onChange={(event) => setBulkForm({ ...bulkForm, currentValueUser: event.target.value })} placeholder="Current estimate" />
+            <button onClick={applyBulkEdit} className="inline-flex items-center justify-center gap-2 rounded-md bg-vault-gold px-4 py-3 text-sm font-semibold text-vault-black">
+              <Save size={15} />
+              Apply
+            </button>
+          </div>
+        </motion.section>
+      ) : bulkMessage ? (
+        <p className="mb-4 rounded border border-vault-border bg-vault-surface p-3 text-xs text-vault-gold">{bulkMessage}</p>
+      ) : null}
+
       <div className="vault-table">
-        <div className="hidden grid-cols-[1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr] border-b border-vault-border px-4 py-3 text-[9px] uppercase tracking-[0.15em] text-vault-faint lg:grid">
+        <div className="hidden grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr] border-b border-vault-border px-4 py-3 text-[9px] uppercase tracking-[0.15em] text-vault-faint lg:grid">
+          <button onClick={() => setSelectedIds(selectedIds.length === rows.length ? [] : rows.map((item) => item.id))} className="h-4 w-4 rounded border border-vault-border" aria-label="Select all visible assets" />
           <span>Asset</span><span>Category</span><span>Value</span><span>Today</span><span>Docs</span><span>Liquidity</span>
         </div>
         {rows.map((item) => {
           const itemReturn = getItemReturn(item);
           const daily = getItemDailyDelta(item);
+          const primaryPhoto = getPrimaryPhoto(item.photos);
+          const selected = selectedIds.includes(item.id);
           return (
             <motion.div
               key={item.id}
               initial={item.id === lastAdded ? { opacity: 0, y: -18 } : false}
               animate={{ opacity: 1, y: 0 }}
-              className="grid gap-4 border-b border-vault-border bg-vault-card px-4 py-3.5 transition last:border-b-0 hover:bg-vault-gold/5 lg:grid-cols-[1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr] lg:items-center"
+              className={`grid gap-4 border-b border-vault-border bg-vault-card px-4 py-3.5 transition last:border-b-0 hover:bg-vault-gold/5 lg:grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr] lg:items-center ${selected ? "bg-vault-gold/10" : ""}`}
             >
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  checked={selected}
+                  onChange={(event) => toggleSelected(item.id, event.target.checked)}
+                  className="h-4 w-4 accent-[#c9a84c]"
+                  aria-label={`Select ${item.name}`}
+                />
+              </label>
               <Link href={`/collection/${item.id}`} className="flex items-center gap-4">
                 <div className="relative h-10 w-10 overflow-hidden rounded-md border border-vault-border">
-                  <AssetImage src={item.photos[0]?.url} alt={item.name} sizes="64px" />
+                  <AssetImage src={primaryPhoto?.url} alt={item.name} sizes="64px" />
                 </div>
                 <span>
                   <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>

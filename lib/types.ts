@@ -84,6 +84,18 @@ export interface VaultDocument {
   uploadedAt: string;
 }
 
+export const documentTypes = ["receipt", "certificate", "appraisal", "service", "customs", "press", "other"] as const;
+
+export const documentTypeLabels: Record<VaultDocument["type"], string> = {
+  receipt: "Receipt",
+  certificate: "Certificate",
+  appraisal: "Appraisal",
+  service: "Service Record",
+  customs: "Customs",
+  press: "Press / Publication",
+  other: "Other"
+};
+
 export interface PriceHistoryPoint {
   id: string;
   itemId: string;

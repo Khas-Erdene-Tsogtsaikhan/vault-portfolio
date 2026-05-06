@@ -5,7 +5,7 @@ import { persist } from "zustand/middleware";
 import { demoItems, demoListings, demoOffers, demoUser, demoWatchlist } from "@/lib/demo-data";
 import { buildNotificationEvents, createMockWebPushToken, defaultNotificationPrefs } from "@/lib/notifications";
 import { getTier } from "@/lib/portfolio-utils";
-import { addProofFilesToSupabaseItem, addVaultItemToSupabase, deleteSupabasePhoto, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, updateSupabaseEstimate, updateSupabaseItemDetails, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
+import { addProofFilesToSupabaseItem, addVaultItemToSupabase, deleteSupabasePhoto, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, setSupabasePrimaryPhoto, updateSupabaseEstimate, updateSupabaseItemDetails, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
 import { supabase } from "@/lib/supabase";
 import type { Category, Listing, MarketSearchResult, NotificationEvent, NotificationPreferences, Offer, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
 
@@ -55,6 +55,7 @@ interface VaultState {
   addItem: (input: NewVaultItemInput) => Promise<VaultItem>;
   addProofFiles: (itemId: string, photoFiles: File[], documentFiles: Array<{ file: File; type: VaultDocument["type"] }>) => Promise<void>;
   removePhoto: (itemId: string, photoId: string) => Promise<void>;
+  setPrimaryPhoto: (itemId: string, photoId: string) => Promise<void>;
   updateItemDetails: (itemId: string, input: Partial<Pick<VaultItem, "name" | "brand" | "referenceNumber" | "condition" | "costBasis" | "currentValueUser" | "acquiredDate" | "acquiredFrom" | "notes" | "story">>) => Promise<void>;
   updateEstimate: (itemId: string, value: number) => Promise<void>;
   toggleOpenToOffers: (itemId: string, enabled: boolean, floorPrice?: number) => Promise<void>;
@@ -205,7 +206,8 @@ export const useVaultStore = create<VaultState>()(
         const now = new Date().toISOString();
         const state = get();
         if (supabase && state.authStatus === "authenticated" && state.user.id !== demoUser.id) {
-          const additions = await addProofFilesToSupabaseItem(itemId, state.user.id, photoFiles, documentFiles);
+          const existingPhotoCount = state.items.find((item) => item.id === itemId)?.photos.length ?? 0;
+          const additions = await addProofFilesToSupabaseItem(itemId, state.user.id, photoFiles, documentFiles, existingPhotoCount);
           set((current) => ({
             items: current.items.map((item) =>
               item.id === itemId
@@ -239,11 +241,33 @@ export const useVaultStore = create<VaultState>()(
         }));
       },
       removePhoto: async (itemId, photoId) => {
+        const currentItem = get().items.find((item) => item.id === itemId);
+        const wasPrimary = currentItem?.photos.find((photo) => photo.id === photoId)?.isPrimary;
+        const nextPrimary = currentItem?.photos.find((photo) => photo.id !== photoId);
         if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
           await deleteSupabasePhoto(photoId);
+          if (wasPrimary && nextPrimary) await setSupabasePrimaryPhoto(itemId, nextPrimary.id);
         }
         set((state) => ({
-          items: state.items.map((item) => item.id === itemId ? { ...item, photos: item.photos.filter((photo) => photo.id !== photoId), updatedAt: new Date().toISOString() } : item)
+          items: state.items.map((item) => {
+            if (item.id !== itemId) return item;
+            const wasPrimary = item.photos.find((photo) => photo.id === photoId)?.isPrimary;
+            const remaining = item.photos.filter((photo) => photo.id !== photoId);
+            const photos = wasPrimary && remaining.length
+              ? remaining.map((photo, index) => ({ ...photo, isPrimary: index === 0 }))
+              : remaining;
+            return { ...item, photos, updatedAt: new Date().toISOString() };
+          })
+        }));
+      },
+      setPrimaryPhoto: async (itemId, photoId) => {
+        if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
+          await setSupabasePrimaryPhoto(itemId, photoId);
+        }
+        set((state) => ({
+          items: state.items.map((item) => item.id === itemId
+            ? { ...item, photos: item.photos.map((photo) => ({ ...photo, isPrimary: photo.id === photoId })), updatedAt: new Date().toISOString() }
+            : item)
         }));
       },
       updateItemDetails: async (itemId, input) => {
