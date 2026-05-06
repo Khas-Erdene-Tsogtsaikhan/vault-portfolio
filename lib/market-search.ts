@@ -1,5 +1,14 @@
-import type { EbaySoldListing } from "@/lib/ebay-valuation";
 import type { Category, MarketSearchResult } from "@/lib/types";
+
+interface MockSoldListing {
+  itemId: string;
+  title: string;
+  price: number;
+  soldAt: string;
+  imageUrl?: string;
+  url?: string;
+  condition?: string;
+}
 
 export function inferCategory(query: string): Category {
   const value = query.toLowerCase();
@@ -44,6 +53,21 @@ export function mockMarketSearch(query: string): MarketSearchResult[] {
     jewelry: [],
     books: [],
     coins: [],
+    video_games: [
+      { title: `${normalized} loose`, price: 172, condition: "Loose", soldCount: 118 },
+      { title: `${normalized} complete in box`, price: 430, condition: "CIB", soldCount: 84 },
+      { title: `${normalized} new sealed`, price: 530, condition: "New", soldCount: 31 }
+    ],
+    comics: [
+      { title: `${normalized} CGC 9.8`, price: 920, condition: "CGC 9.8", soldCount: 44 },
+      { title: `${normalized} raw high grade`, price: 220, condition: "Ungraded", soldCount: 67 }
+    ],
+    funko: [
+      { title: `${normalized} vaulted figure`, price: 180, condition: "New", soldCount: 52 }
+    ],
+    lego: [
+      { title: `${normalized} sealed set`, price: 310, condition: "New", soldCount: 72 }
+    ],
     vintage_clothing: [],
     cars: [],
     guitars: [],
@@ -75,7 +99,7 @@ export function mockMarketSearch(query: string): MarketSearchResult[] {
   }));
 }
 
-export function mockSoldListings(query: string, category: Category): EbaySoldListing[] {
+export function mockSoldListings(query: string, category: Category): MockSoldListing[] {
   const base = mockMarketSearch(query).find((result) => result.category === category) ?? mockMarketSearch(query)[0];
   const prices = Array.from({ length: Math.min(20, Math.max(5, base.soldCount ?? 8)) }, (_, index) => {
     const wave = Math.sin(index * 1.7) * 0.06;

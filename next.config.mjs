@@ -13,6 +13,10 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "ir.ebaystatic.com"
+      },
+      {
+        protocol: "https",
+        hostname: "www.pricecharting.com"
       }
     ]
   }

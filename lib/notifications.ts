@@ -47,7 +47,7 @@ export function buildNotificationEvents({
     }
 
     if (prefs.notifyMarketMoves && dailyPct > prefs.notifyPriceUpPct && !sentByItem.has(`${item.id}:PRICE_UP`)) {
-      events.push(notification(user.id, "PRICE_UP", `${item.name} up ${Math.round(dailyPct)}% today`, `${item.name} jumped ${money(daily.amount)} today based on recent eBay sales. Current estimate: ${money(item.currentValueUser)}.`, item.id, "medium", now));
+      events.push(notification(user.id, "PRICE_UP", `${item.name} up ${Math.round(dailyPct)}% today`, `${item.name} jumped ${money(daily.amount)} today based on the latest PriceCharting guide sync. Current estimate: ${money(item.currentValueUser)}.`, item.id, "medium", now));
       continue;
     }
 

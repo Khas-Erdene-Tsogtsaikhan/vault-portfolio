@@ -34,6 +34,10 @@ model Item {
   current_value_market     Decimal?
   current_value_source     String
   current_value_updated_at DateTime
+  pricecharting_id         String?
+  pricecharting_console    String?
+  pricecharting_price_field String?
+  pricecharting_last_sync_at DateTime?
   is_sold                  Boolean  @default(false)
   sold_price               Decimal?
   sold_date                DateTime?
@@ -65,4 +69,18 @@ model PriceHistory {
   value       Decimal
   source      String
   recorded_at DateTime @default(now())
+}
+
+model PriceCache {
+  id              String   @id @default(uuid())
+  item_identifier String   @unique
+  source          String   @default("pricecharting")
+  market_value    Decimal?
+  price_low       Decimal?
+  price_high      Decimal?
+  last_sale_price Decimal?
+  confidence      String   @default("NONE")
+  raw_response    Json?
+  fetched_at      DateTime @default(now())
+  expires_at      DateTime
 }

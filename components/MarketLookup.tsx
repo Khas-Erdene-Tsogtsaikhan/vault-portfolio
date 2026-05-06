@@ -29,7 +29,7 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
     if (!value.trim()) return;
     setQuery(value);
     setLoading(true);
-    const response = await fetch(`/api/market/search?q=${encodeURIComponent(value)}&limit=20`);
+    const response = await fetch(`/api/market/search?q=${encodeURIComponent(value)}&limit=5`);
     const data = await response.json() as { results: MarketSearchResult[]; source: string; valuation?: PublicValuation };
     setResults(data.results);
     setSource(data.source);
@@ -42,20 +42,20 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
       <div className="flex flex-col gap-3 sm:flex-row">
         <label className="relative flex-1">
           <Search size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-vault-faint" />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchFor(); }} className="form-input pl-10" placeholder="Search sold comps: Charizard Base Set PSA 10, Jordan 1 Bred Toe Size 10..." />
+          <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void searchFor(); }} className="form-input pl-10" placeholder="Search PriceCharting: Charizard #4 PSA 10, EarthBound SNES, Mario N64..." />
         </label>
         <button onClick={() => searchFor()} className="rounded bg-vault-gold px-5 py-3 text-xs font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light">
-          {loading ? "Searching" : "Search Sold Value"}
+          {loading ? "Searching" : "Search Guide Value"}
         </button>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
-        {["Charizard Base Set PSA 10", "Jordan 1 Bred Toe Size 10", "Pokemon Moonbreon PSA 10"].map((example) => (
+        {["Charizard #4 PSA 10", "EarthBound Super Nintendo", "Amazing Spider-Man 300 CGC 9.8"].map((example) => (
           <button key={example} onClick={() => searchFor(example)} className="rounded border border-vault-border bg-vault-black px-3 py-1.5 text-[11px] text-vault-muted transition hover:border-vault-bright hover:text-vault-text">
             {example}
           </button>
         ))}
       </div>
-      {source ? <p className="mt-3 text-xs text-vault-faint">Source: {source === "ebay_finding_api" ? "eBay Finding API sold listings" : "VAULT fallback sold-listing model"} · SoldItemsOnly valuation with IQR outlier removal.</p> : null}
+      {source ? <p className="mt-3 text-xs text-vault-faint">Source: {sourceLabel(source)} · cached first, then queued PriceCharting calls at one request per second.</p> : null}
 
       {valuation ? (
         <div className="mt-4 rounded-[10px] border border-vault-border bg-vault-black p-4">
@@ -67,7 +67,7 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
             <Confidence confidence={valuation.confidence} />
           </div>
           <p className="mt-3 text-xs text-vault-muted">
-            {valuation.confidence === "NONE" ? "No sales found in the confidence window." : `Median of ${valuation.sampleSize} recent sold listings · Range ${currency.format(valuation.priceLow ?? 0)} to ${currency.format(valuation.priceHigh ?? 0)} · Last sale ${currency.format(valuation.lastSalePrice ?? 0)}${valuation.lastSaleDate ? ` on ${new Date(valuation.lastSaleDate).toLocaleDateString()}` : ""}`}
+            {valuation.confidence === "NONE" ? "No PriceCharting guide value found." : `Guide value from ${valuation.sampleSize} yearly sales signal${valuation.sampleSize === 1 ? "" : "s"} · Available condition range ${currency.format(valuation.priceLow ?? 0)} to ${currency.format(valuation.priceHigh ?? 0)} · Synced ${valuation.lastSaleDate ? new Date(valuation.lastSaleDate).toLocaleDateString() : "today"}`}
           </p>
         </div>
       ) : null}
@@ -84,7 +84,7 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
                   <h3 className="text-sm font-medium text-vault-text">{result.title}</h3>
                   <Badge tone="muted">{categoryLabel(result.category)}</Badge>
                 </div>
-                <p className="mt-2 text-xs text-vault-muted">{result.condition ?? "Comparable sold result"} · sold {result.soldAt ? new Date(result.soldAt).toLocaleDateString() : "recently"} · {result.priceConfidence ?? result.confidence} confidence · {result.soldCount ?? 0} sales used</p>
+                <p className="mt-2 text-xs text-vault-muted">{result.condition ?? "Guide value"} · {result.pricechartingConsole ?? "PriceCharting"} · {result.priceConfidence ?? result.confidence} confidence · {result.soldCount ?? 0} yearly sales signal</p>
               </div>
               <div className="flex items-center gap-3 sm:justify-end">
                 <span className="data text-xl text-vault-gold">{currency.format(result.price)}</span>
@@ -108,4 +108,11 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
 function Confidence({ confidence }: { confidence: PublicValuation["confidence"] }) {
   const tone = confidence === "HIGH" ? "bg-vault-green" : confidence === "MEDIUM" ? "bg-vault-gold" : confidence === "LOW" ? "bg-vault-red" : "bg-vault-faint";
   return <span className="inline-flex items-center gap-2 rounded border border-vault-border bg-vault-surface px-3 py-2 font-mono text-[11px] text-vault-muted"><span className={`h-2 w-2 rounded-full ${tone}`} />{confidence}</span>;
+}
+
+function sourceLabel(source: string) {
+  if (source === "pricecharting_api") return "PriceCharting API";
+  if (source === "pricecharting_cache") return "VAULT price cache";
+  if (source === "mock") return "VAULT demo PriceCharting model";
+  return "PriceCharting";
 }

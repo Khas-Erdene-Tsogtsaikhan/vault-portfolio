@@ -107,14 +107,17 @@ export function AddItemWizard() {
             costBasis: Number(pickedItem.costBasis || 0),
             currentValueUser: result.price,
             currentValueMarket: result.priceConfidence === "NONE" ? undefined : result.price,
-            ebaySearchQuery: result.searchQuery,
-            ebayReference: result.id,
+            ebaySearchQuery: undefined,
+            ebayReference: undefined,
             priceLow: result.priceLow,
             priceHigh: result.priceHigh,
             lastSalePrice: result.lastSalePrice,
             lastSaleDate: result.lastSaleDate,
             priceSampleSize: result.soldCount,
             priceConfidence: result.priceConfidence,
+            pricechartingId: result.pricechartingId,
+            pricechartingConsole: result.pricechartingConsole,
+            pricechartingPriceField: result.pricechartingPriceField,
             photoUrls: result.imageUrl ? [result.imageUrl] : undefined,
             acquiredDate: pickedItem.acquiredDate,
             notes: "Added from VAULT market search. Default image sourced from the matched market result; owner photos and proof can be added to the asset file over time.",
@@ -175,7 +178,7 @@ export function AddItemWizard() {
         {!items.length ? (
           <div className="mt-5 rounded-[10px] border border-vault-gold/25 bg-vault-gold/10 p-4">
             <p className="section-label">First Asset Onboarding</p>
-            <p className="mt-2 text-sm leading-6 text-vault-text">Start with one piece you know well. Search first for market value, add what you paid, then attach owner photos or a receipt so VAULT can turn it into a real asset file.</p>
+            <p className="mt-2 text-sm leading-6 text-vault-text">Start with one PriceCharting-supported piece you know well. Search first for guide value, add what you paid, then attach owner photos or a receipt so VAULT can turn it into a real asset file.</p>
           </div>
         ) : null}
 
@@ -188,7 +191,7 @@ export function AddItemWizard() {
         {method === "search" ? (
           <div className="mt-6 rounded-[10px] border border-vault-border bg-vault-black p-4">
             <p className="section-label">Search Worth First</p>
-            <p className="mt-2 text-sm text-vault-muted">Search sold comps, pick more than one result, and review your selected positions in the tray before adding them.</p>
+            <p className="mt-2 text-sm text-vault-muted">Search PriceCharting guide values, pick more than one result, and review your selected positions in the tray before adding them.</p>
             <div className="mt-4">
               <MarketLookup onSelect={pickSearchResult} selectedIds={picked.map((item) => item.result.id)} actionLabel="Pick" compact />
             </div>
@@ -321,7 +324,30 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
             <div className="mt-3 grid gap-2">
               <input className="form-input data" value={item.costBasis} onChange={(event) => onUpdate(item.result.id, { costBasis: event.target.value })} placeholder="What you paid" />
               <input className="form-input data" type="date" value={item.acquiredDate} onChange={(event) => onUpdate(item.result.id, { acquiredDate: event.target.value })} />
-              <input className="form-input" value={item.condition} onChange={(event) => onUpdate(item.result.id, { condition: event.target.value })} placeholder="Condition / grade" />
+              {item.result.priceOptions?.length ? (
+                <select
+                  className="form-input"
+                  value={item.result.pricechartingPriceField}
+                  onChange={(event) => {
+                    const option = item.result.priceOptions?.find((candidate) => candidate.field === event.target.value);
+                    if (!option) return;
+                    onUpdate(item.result.id, {
+                      condition: option.label,
+                      result: {
+                        ...item.result,
+                        price: option.value,
+                        condition: option.label,
+                        pricechartingPriceField: option.field,
+                        lastSalePrice: option.value
+                      }
+                    });
+                  }}
+                >
+                  {item.result.priceOptions.map((option) => <option key={option.field} value={option.field}>{option.label} · {currency.format(option.value)}</option>)}
+                </select>
+              ) : (
+                <input className="form-input" value={item.condition} onChange={(event) => onUpdate(item.result.id, { condition: event.target.value })} placeholder="Condition / grade" />
+              )}
               <div className="grid gap-2 sm:grid-cols-2">
                 <MiniUpload label="Owner photos" accept="image/jpeg,image/png,image/webp" onChange={(files) => onUpdate(item.result.id, { photoFiles: files.slice(0, 6) })} />
                 <MiniDocumentUpload onChange={(documents) => onUpdate(item.result.id, { documentFiles: documents })} />

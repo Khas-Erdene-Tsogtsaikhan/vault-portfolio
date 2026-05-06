@@ -477,14 +477,14 @@ function MarketValuationPanel({ item }: { item: VaultItem }) {
         <div>
           <p className="section-label">Market Valuation</p>
           <p className="data mt-3 text-4xl text-vault-gold">{hasPrice ? currency.format(item.currentValueMarket ?? item.currentValueUser) : "—"}</p>
-          <p className="mt-2 text-xs text-vault-muted">{hasPrice ? `Median of ${item.priceSampleSize ?? item.salesLast30Days ?? 0} recent sales` : "No recent sales data"}</p>
+          <p className="mt-2 text-xs text-vault-muted">{hasPrice ? `${item.currentValueSource === "PriceCharting Guide Value" ? "Guide value" : "Market value"} from ${item.priceSampleSize ?? item.salesLast30Days ?? 0} yearly sales signal${(item.priceSampleSize ?? item.salesLast30Days ?? 0) === 1 ? "" : "s"}` : "No recent market data"}</p>
         </div>
         <span className="inline-flex items-center gap-2 rounded border border-vault-border bg-vault-black px-3 py-2 font-mono text-[11px] text-vault-muted"><span className={`h-2 w-2 rounded-full ${dot}`} />{confidence}</span>
       </div>
       <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
         <div><p className="section-label">Range</p><p className="data mt-1 text-vault-text">{item.priceLow && item.priceHigh ? `${currency.format(item.priceLow)} to ${currency.format(item.priceHigh)}` : "—"}</p></div>
-        <div><p className="section-label">Last Sale</p><p className="data mt-1 text-vault-text">{item.lastSalePrice ? currency.format(item.lastSalePrice) : "—"}{item.lastSaleDate ? <span className="block text-[10px] text-vault-faint">{new Date(item.lastSaleDate).toLocaleDateString()}</span> : null}</p></div>
-        <div><p className="section-label">Source</p><p className="mt-1 text-xs text-vault-muted">{item.ebaySearchQuery ? "eBay Sold Listings" : "Your estimate"}{item.ebaySearchQuery ? <span className="block text-vault-faint">{item.ebaySearchQuery}</span> : null}</p></div>
+        <div><p className="section-label">Synced Value</p><p className="data mt-1 text-vault-text">{item.lastSalePrice ? currency.format(item.lastSalePrice) : "—"}{item.pricechartingLastSyncAt || item.lastSaleDate ? <span className="block text-[10px] text-vault-faint">{new Date(item.pricechartingLastSyncAt ?? item.lastSaleDate ?? item.currentValueUpdatedAt).toLocaleDateString()}</span> : null}</p></div>
+        <div><p className="section-label">Source</p><p className="mt-1 text-xs text-vault-muted">{item.pricechartingId ? "PriceCharting Guide Value" : item.ebaySearchQuery ? "eBay Sold Listings" : "Your estimate"}{item.pricechartingConsole ? <span className="block text-vault-faint">{item.pricechartingConsole} · {item.pricechartingPriceField}</span> : item.ebaySearchQuery ? <span className="block text-vault-faint">{item.ebaySearchQuery}</span> : null}</p></div>
       </div>
     </div>
   );

@@ -32,6 +32,9 @@ export interface NewVaultItemInput {
   lastSaleDate?: string;
   priceSampleSize?: number;
   priceConfidence?: VaultItem["priceConfidence"];
+  pricechartingId?: string;
+  pricechartingConsole?: string;
+  pricechartingPriceField?: string;
   photoUrls?: string[];
   photoFiles: File[];
   documentFiles: Array<{ file: File; type: VaultDocument["type"] }>;
@@ -165,7 +168,7 @@ export const useVaultStore = create<VaultState>()(
           story: input.story,
           currentValueUser: input.currentValueUser,
           currentValueMarket: input.currentValueMarket,
-          currentValueSource: input.currentValueMarket ? "eBay Sold Listings" : "Your estimate",
+          currentValueSource: input.currentValueMarket ? (input.pricechartingId ? "PriceCharting Guide Value" : "eBay Sold Listings") : "Your estimate",
           currentValueUpdatedAt: now,
           value24hAgo: input.currentValueUser,
           ebaySearchQuery: input.ebaySearchQuery,
@@ -176,6 +179,10 @@ export const useVaultStore = create<VaultState>()(
           lastSaleDate: input.lastSaleDate,
           priceSampleSize: input.priceSampleSize,
           priceConfidence: input.priceConfidence,
+          pricechartingId: input.pricechartingId,
+          pricechartingConsole: input.pricechartingConsole,
+          pricechartingPriceField: input.pricechartingPriceField,
+          pricechartingLastSyncAt: input.pricechartingId ? now : undefined,
           listingStatus: "none",
           isSold: false,
           createdAt: now,

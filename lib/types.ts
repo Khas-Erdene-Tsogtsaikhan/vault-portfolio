@@ -8,6 +8,10 @@ export const categories = [
   "trading_cards",
   "books",
   "coins",
+  "video_games",
+  "comics",
+  "funko",
+  "lego",
   "vintage_clothing",
   "cars",
   "guitars",
@@ -135,7 +139,7 @@ export interface VaultItem {
   story: string;
   currentValueUser: number;
   currentValueMarket?: number;
-  currentValueSource: "Your estimate" | "Market placeholder" | "Appraisal" | "eBay Sold Listings";
+  currentValueSource: "Your estimate" | "Market placeholder" | "Appraisal" | "eBay Sold Listings" | "PriceCharting Guide Value";
   currentValueUpdatedAt: string;
   value24hAgo?: number;
   ebaySearchQuery?: string;
@@ -144,6 +148,10 @@ export interface VaultItem {
   priceHigh?: number;
   priceSampleSize?: number;
   priceConfidence?: "HIGH" | "MEDIUM" | "LOW" | "NONE";
+  pricechartingId?: string;
+  pricechartingConsole?: string;
+  pricechartingPriceField?: string;
+  pricechartingLastSyncAt?: string;
   salesLast30Days?: number;
   lastSalePrice?: number;
   lastSaleDate?: string;
@@ -247,4 +255,8 @@ export interface MarketSearchResult {
   priceConfidence?: "HIGH" | "MEDIUM" | "LOW" | "NONE";
   searchQuery?: string;
   marketStatus?: "recent_sales" | "active_listings" | "mock" | "no_recent_sales";
+  pricechartingId?: string;
+  pricechartingConsole?: string;
+  pricechartingPriceField?: string;
+  priceOptions?: Array<{ field: string; label: string; value: number }>;
 }
