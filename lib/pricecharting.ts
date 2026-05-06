@@ -72,23 +72,29 @@ export async function searchPriceCharting(rawQuery: string, limit = 5): Promise<
   }
 
   const matches = await enqueuePriceChartingCall(() => fetchProducts(token, query, limit));
-  const detailed = [];
-  for (const match of matches.slice(0, Math.min(limit, 5))) {
-    const detailKey = normalizePriceKey(`pc-${match.id}`);
-    const detailCache = await readCache(detailKey);
-    if (detailCache?.results[0]) {
-      detailed.push(resultToProduct(detailCache.results[0]));
-      continue;
-    }
-    const product = await enqueuePriceChartingCall(() => fetchProduct(token, { id: match.id }));
-    detailed.push(product);
-  }
-
-  const results = detailed.map((product) => productToResult(product, query)).filter(Boolean) as MarketSearchResult[];
+  const results = matches.slice(0, Math.min(limit, 10)).map((product) => productSummaryToResult(product, query));
   const valuation = resultsToValuation(results);
   const payload = { results, valuation, source: "pricecharting_api" };
   await writeCache(identifier, payload);
-  for (const result of results) await writeCache(normalizePriceKey(`pc-${result.pricechartingId}`), { results: [result], valuation: resultToValuation(result), source: "pricecharting_api" });
+  return payload;
+}
+
+export async function getPriceChartingProductResult(productId: string, query = "", preferredField?: string): Promise<CachedPricePayload> {
+  const identifier = normalizePriceKey(`pc-${productId}`);
+  const cached = await readCache(identifier);
+  if (cached?.results[0]?.priceOptions?.length) return { ...cached, source: cached.source === "mock" ? "mock" : "pricecharting_cache" };
+
+  const token = process.env.PRICECHARTING_API_TOKEN;
+  if (!token) {
+    const payload = mockPayload(query || productId);
+    await writeCache(identifier, payload);
+    return payload;
+  }
+
+  const product = await enqueuePriceChartingCall(() => fetchProduct(token, { id: productId }));
+  const result = productToResult(product, query || product["product-name"], preferredField);
+  const payload = { results: result ? [result] : [], valuation: result ? resultToValuation(result) : emptyValuation(), source: "pricecharting_api" };
+  await writeCache(identifier, payload);
   return payload;
 }
 
@@ -156,6 +162,25 @@ function productToResult(product: PriceChartingProduct, query: string, preferred
     pricechartingConsole: product["console-name"],
     pricechartingPriceField: option.field,
     priceOptions: options
+  };
+}
+
+function productSummaryToResult(product: Pick<PriceChartingProduct, "id" | "product-name" | "console-name">, query: string): MarketSearchResult {
+  return {
+    id: `pricecharting-${product.id}`,
+    title: product["product-name"],
+    category: inferPriceChartingCategory(product as PriceChartingProduct),
+    imageUrl: priceChartingImageUrl(product.id),
+    price: 0,
+    source: "PriceCharting Product Search",
+    confidence: "Low",
+    condition: "Select for guide value",
+    soldAt: undefined,
+    priceConfidence: "NONE",
+    searchQuery: query,
+    marketStatus: "no_recent_sales",
+    pricechartingId: product.id,
+    pricechartingConsole: product["console-name"]
   };
 }
 
@@ -276,6 +301,7 @@ function mockPayload(query: string): CachedPricePayload {
     id: `mock-${normalizePriceKey(query)}`,
     "product-name": query || "Charizard Base Set",
     "console-name": /game|mario|zelda|pokemon/i.test(query) ? "Pokemon Cards" : "PriceCharting Demo",
+    "image-url": priceChartingImageUrl(`mock-${normalizePriceKey(query)}`),
     "sales-volume": 124,
     "loose-price": 18400,
     "graded-price": 91000,
@@ -302,6 +328,10 @@ function normalizeImageUrl(value: unknown) {
   if (typeof value !== "string" || !value) return undefined;
   if (value.startsWith("http")) return value;
   return `https://www.pricecharting.com${value}`;
+}
+
+function priceChartingImageUrl(productId: string) {
+  return `https://images.pricecharting.com/products/${productId}/200.jpg`;
 }
 
 function centsToDollars(value: unknown) {

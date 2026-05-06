@@ -50,8 +50,12 @@ export function AddItemWizard() {
   });
 
   function pickSearchResult(result: MarketSearchResult) {
+    if (result.price <= 0 || !result.priceOptions?.length) {
+      setToast("VAULT could not load a PriceCharting guide value for that result yet. Try another match or use Manual.");
+      return;
+    }
     setPicked((current) => {
-      if (current.some((item) => item.result.id === result.id)) return current;
+      if (current.some((item) => item.result.pricechartingId === result.pricechartingId && item.result.pricechartingPriceField === result.pricechartingPriceField)) return current;
       return [
         ...current,
         {
@@ -64,7 +68,7 @@ export function AddItemWizard() {
         }
       ];
     });
-    setToast(`${result.title} added to your selection. Add cost basis, then place it in your Vault.`);
+    setToast(`${result.title} loaded from PriceCharting. Add cost basis, then place it in your Vault.`);
   }
 
   function removePicked(id: string) {

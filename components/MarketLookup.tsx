@@ -24,6 +24,7 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
   const [source, setSource] = useState("");
   const [valuation, setValuation] = useState<PublicValuation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pickingId, setPickingId] = useState<string | null>(null);
 
   async function searchFor(value = query) {
     if (!value.trim()) return;
@@ -35,6 +36,22 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
     setSource(data.source);
     setValuation(data.valuation ?? null);
     setLoading(false);
+  }
+
+  async function pickResult(result: MarketSearchResult) {
+    if (!onSelect) return;
+    if (result.priceOptions?.length || !result.pricechartingId) {
+      onSelect(result);
+      return;
+    }
+    setPickingId(result.id);
+    try {
+      const response = await fetch(`/api/market/product?id=${encodeURIComponent(result.pricechartingId)}&q=${encodeURIComponent(query || result.title)}`);
+      const data = await response.json() as { results: MarketSearchResult[] };
+      onSelect(data.results[0] ?? result);
+    } finally {
+      setPickingId(null);
+    }
   }
 
   return (
@@ -55,14 +72,14 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
           </button>
         ))}
       </div>
-      {source ? <p className="mt-3 text-xs text-vault-faint">Source: {sourceLabel(source)} · cached first, then queued PriceCharting calls at one request per second.</p> : null}
+      {source ? <p className="mt-3 text-xs text-vault-faint">Source: {sourceLabel(source)} · search is one queued call; exact guide value loads when you pick an item.</p> : null}
 
-      {valuation ? (
+      {valuation?.marketValue ? (
         <div className="mt-4 rounded-[10px] border border-vault-border bg-vault-black p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="section-label">Market Valuation</p>
-              <p className="data mt-2 text-3xl text-vault-gold">{valuation.confidence === "NONE" || !valuation.marketValue ? "—" : currency.format(valuation.marketValue)}</p>
+              <p className="data mt-2 text-3xl text-vault-gold">{currency.format(valuation.marketValue)}</p>
             </div>
             <Confidence confidence={valuation.confidence} />
           </div>
@@ -77,7 +94,7 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
           {results.map((result) => (
             <article key={result.id} className="grid gap-4 rounded-[10px] border border-vault-border bg-vault-surface p-4 transition hover:-translate-y-0.5 hover:border-vault-bright sm:grid-cols-[64px_1fr_auto] sm:items-center">
               <div className="relative h-16 w-16 overflow-hidden rounded-md border border-vault-border bg-vault-black">
-                {result.imageUrl ? <Image src={result.imageUrl} alt="" fill sizes="64px" className="object-cover" /> : <TrendingUp className="m-5 text-vault-gold" />}
+                {result.imageUrl ? <SearchResultImage src={result.imageUrl} alt="" /> : <TrendingUp className="m-5 text-vault-gold" />}
               </div>
               <div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -87,13 +104,14 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
                 <p className="mt-2 text-xs text-vault-muted">{result.condition ?? "Guide value"} · {result.pricechartingConsole ?? "PriceCharting"} · {result.priceConfidence ?? result.confidence} confidence · {result.soldCount ?? 0} yearly sales signal</p>
               </div>
               <div className="flex items-center gap-3 sm:justify-end">
-                <span className="data text-xl text-vault-gold">{currency.format(result.price)}</span>
+                <span className="data text-xl text-vault-gold">{result.price > 0 ? currency.format(result.price) : "Select"}</span>
                 {onSelect ? (
                   <button
-                    onClick={() => onSelect(result)}
+                    onClick={() => void pickResult(result)}
+                    disabled={pickingId === result.id}
                     className={`rounded border px-3 py-2 text-xs transition ${selectedIds.includes(result.id) ? "border-vault-gold bg-vault-gold/10 text-vault-gold" : "border-vault-border text-vault-text hover:border-vault-bright"}`}
                   >
-                    {selectedIds.includes(result.id) ? "Picked" : actionLabel}
+                    {pickingId === result.id ? "Loading value" : selectedIds.includes(result.id) ? "Picked" : actionLabel}
                   </button>
                 ) : null}
               </div>
@@ -103,6 +121,12 @@ export function MarketLookup({ onSelect, compact = false, selectedIds = [], acti
       ) : null}
     </section>
   );
+}
+
+function SearchResultImage({ src, alt }: { src: string; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <TrendingUp className="m-5 text-vault-gold" />;
+  return <Image src={src} alt={alt} fill sizes="64px" className="object-cover" onError={() => setFailed(true)} />;
 }
 
 function Confidence({ confidence }: { confidence: PublicValuation["confidence"] }) {
