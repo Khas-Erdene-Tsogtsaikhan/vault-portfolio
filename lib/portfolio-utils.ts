@@ -215,7 +215,7 @@ export function getPortfolioHistory(items: VaultItem[]) {
     const date = startOfDay(new Date(value));
     return date < earliest ? date : earliest;
   }, today);
-  const start = earliestKnown >= today ? addDays(today, -30) : earliestKnown;
+  const start = earliestKnown >= today ? addDays(today, -1) : earliestKnown;
   const dates = buildSampleDates(start, today);
   const costBasis = items.reduce((sum, item) => sum + item.costBasis, 0);
 

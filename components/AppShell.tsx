@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, Circle, FileText, Gem, Inbox, Landmark, Plus, Settings, Trophy, User, Vault } from "lucide-react";
+import { BarChart3, Circle, FileText, Gem, Landmark, Plus, Settings, Trophy, User, Vault } from "lucide-react";
 import { TierBadge } from "@/components/TierBadge";
 import { categoryLabel, currency, getCategoryBreakdown, getNextTierProgress, getPortfolioMetrics } from "@/lib/portfolio-utils";
 import { useVaultStore } from "@/lib/vault-store";
@@ -13,7 +13,6 @@ const links = [
   { href: "/add", label: "Add", icon: Plus },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/market", label: "Market", icon: Trophy },
-  { href: "/offers", label: "Offers", icon: Inbox },
   { href: "/vault", label: "Vault", icon: Vault },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings }

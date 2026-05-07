@@ -14,6 +14,7 @@ type AddMethod = "search" | "manual" | "barcode";
 type PickedResult = {
   result: MarketSearchResult;
   costBasis: string;
+  manualCurrentValue: string;
   acquiredDate: string;
   condition: string;
   photoFiles: File[];
@@ -49,8 +50,12 @@ export function AddItemWizard() {
   });
 
   function pickSearchResult(result: MarketSearchResult) {
-    if (result.price <= 0 || !result.priceOptions?.length) {
-      setToast("VAULT could not load a PriceCharting guide value for that result yet. Try another match or use Manual.");
+    if (result.price <= 0 && !result.priceOptions?.length) {
+      setToast("VAULT found the item. Add a manual current value in the selected tray if the guide value is missing.");
+    } else if (result.price <= 0) {
+      setToast("VAULT found condition prices. Choose one or type your own current value in the selected tray.");
+    }
+    if (!result.id) {
       return;
     }
     setPicked((current) => {
@@ -60,6 +65,7 @@ export function AddItemWizard() {
         {
           result,
           costBasis: "",
+          manualCurrentValue: "",
           acquiredDate: new Date().toISOString().slice(0, 10),
           condition: result.condition ?? "Excellent",
           photoFiles: [],
@@ -101,29 +107,34 @@ export function AddItemWizard() {
       if (selected.length) {
         for (const pickedItem of selected) {
           const result = pickedItem.result;
+          const manualValue = Number(pickedItem.manualCurrentValue || 0);
+          const selectedValue = manualValue > 0 ? manualValue : result.price;
+          const hasManualValue = manualValue > 0;
           added.push(await addItem({
             name: result.title,
             category: result.category,
             brand: result.title.split(" ")[0] || "Unknown maker",
             referenceNumber: result.id,
-            condition: pickedItem.condition,
+            condition: pickedItem.condition || (hasManualValue ? "Manual estimate" : result.condition ?? "Excellent"),
             costBasis: Number(pickedItem.costBasis || 0),
-            currentValueUser: result.price,
-            currentValueMarket: result.priceConfidence === "NONE" ? undefined : result.price,
+            currentValueUser: selectedValue,
+            currentValueMarket: hasManualValue || result.priceConfidence === "NONE" ? undefined : selectedValue,
             ebaySearchQuery: undefined,
             ebayReference: undefined,
-            priceLow: result.priceLow,
-            priceHigh: result.priceHigh,
-            lastSalePrice: result.lastSalePrice,
+            priceLow: hasManualValue ? undefined : result.priceLow,
+            priceHigh: hasManualValue ? undefined : result.priceHigh,
+            lastSalePrice: hasManualValue ? undefined : result.lastSalePrice,
             lastSaleDate: result.lastSaleDate,
-            priceSampleSize: result.soldCount,
-            priceConfidence: result.priceConfidence,
+            priceSampleSize: hasManualValue ? undefined : result.soldCount,
+            priceConfidence: hasManualValue ? "NONE" : result.priceConfidence,
             pricechartingId: result.pricechartingId,
             pricechartingConsole: result.pricechartingConsole,
-            pricechartingPriceField: result.pricechartingPriceField,
+            pricechartingPriceField: hasManualValue ? undefined : result.pricechartingPriceField,
             photoUrls: result.imageUrl ? [result.imageUrl] : undefined,
             acquiredDate: pickedItem.acquiredDate,
-            notes: "Added from VAULT market search. Default image sourced from the matched market result; owner photos and proof can be added to the asset file over time.",
+            notes: hasManualValue
+              ? "Added from VAULT market search with an owner-entered current value. Default image sourced from the matched market result; owner photos and proof can be added to the asset file over time."
+              : "Added from VAULT market search. Default image sourced from the matched market result; owner photos and proof can be added to the asset file over time.",
             story: "The provenance story begins here.",
             photoFiles: pickedItem.photoFiles,
             documentFiles: pickedItem.documentFiles
@@ -169,8 +180,9 @@ export function AddItemWizard() {
     }
   }
 
-  const selectedValue = picked.reduce((sum, item) => sum + item.result.price, 0);
+  const selectedValue = picked.reduce((sum, item) => sum + (Number(item.manualCurrentValue || 0) || item.result.price), 0);
   const selectedCost = picked.reduce((sum, item) => sum + Number(item.costBasis || 0), 0);
+  const selectedMissingValue = picked.some((item) => (Number(item.manualCurrentValue || 0) || item.result.price) <= 0);
   const manualValue = Number(form.currentValueUser || form.costBasis || 0);
 
   return (
@@ -217,7 +229,7 @@ export function AddItemWizard() {
 
         <button
           onClick={submit}
-          disabled={isSaving || (method === "search" && picked.length === 0)}
+          disabled={isSaving || (method === "search" && (picked.length === 0 || selectedMissingValue))}
           className="flex w-full items-center justify-center gap-2 rounded-md bg-vault-gold px-5 py-4 font-semibold text-vault-black transition hover:bg-vault-gold-light disabled:cursor-not-allowed disabled:opacity-50"
         >
           <CheckCircle2 size={18} />
@@ -241,7 +253,7 @@ export function AddItemWizard() {
               <p className="hero-label justify-center before:hidden">Vault Updated</p>
               <h2 className="mt-4 font-serif text-5xl font-light text-vault-text">{addCelebration.count} {addCelebration.count === 1 ? "asset" : "assets"} secured.</h2>
               <p className="data mt-4 text-4xl text-vault-gold">{currency.format(addCelebration.value)}</p>
-              <p className={`data mt-2 text-sm ${addCelebration.gain >= 0 ? "text-vault-green" : "text-vault-red"}`}>{addCelebration.gain >= 0 ? "+" : ""}{currency.format(addCelebration.gain)} unrealized from cost basis</p>
+              <p className={`data mt-2 text-sm ${addCelebration.gain >= 0 ? "text-vault-green" : "text-vault-muted"}`}>{addCelebration.gain >= 0 ? "+" : ""}{currency.format(addCelebration.gain)} unrealized from cost basis</p>
               <p className="mt-4 text-sm leading-6 text-vault-muted">Your portfolio record just became more valuable and more complete.</p>
             </motion.div>
           </motion.div>
@@ -299,6 +311,9 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
       <div className="mt-4">
         <SummaryPanel value={selectedValue} cost={selectedCost} count={picked.length} />
       </div>
+      {picked.some((item) => (Number(item.manualCurrentValue || 0) || item.result.price) <= 0) ? (
+        <p className="mt-3 rounded border border-vault-gold/25 bg-vault-gold/10 px-3 py-2 text-xs leading-5 text-vault-muted">One selected item needs a manual current value before it can enter your portfolio.</p>
+      ) : null}
       {picked.length > 1 ? (
         <div className="mt-4 rounded-[10px] border border-vault-border bg-vault-black p-3">
           <p className="section-label">Bulk Defaults</p>
@@ -319,7 +334,8 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
 
 function PickedPosition({ item, onRemove, onUpdate }: { item: PickedResult; onRemove: (id: string) => void; onUpdate: (id: string, patch: Partial<PickedResult>) => void }) {
   const paid = Number(item.costBasis || 0);
-  const gain = item.result.price - paid;
+  const currentValue = Number(item.manualCurrentValue || 0) || item.result.price;
+  const gain = currentValue - paid;
   const gainPct = paid > 0 ? gain / paid : null;
 
   return (
@@ -330,7 +346,7 @@ function PickedPosition({ item, onRemove, onUpdate }: { item: PickedResult; onRe
         </div>
         <div className="min-w-0 flex-1">
           <p className="line-clamp-2 text-sm font-medium text-vault-text">{item.result.title}</p>
-          <p className="data mt-1 text-sm text-vault-gold">{currency.format(item.result.price)}</p>
+          <p className="data mt-1 text-sm text-vault-gold">{currentValue > 0 ? currency.format(currentValue) : "Manual value needed"}</p>
         </div>
         <button onClick={() => onRemove(item.result.id)} className="self-start rounded border border-vault-border p-2 text-vault-muted transition hover:border-vault-red hover:text-vault-red" aria-label="Remove selected item">
           <Trash2 size={14} />
@@ -361,12 +377,19 @@ function PickedPosition({ item, onRemove, onUpdate }: { item: PickedResult; onRe
         ) : (
           <input className="form-input" value={item.condition} onChange={(event) => onUpdate(item.result.id, { condition: event.target.value })} placeholder="Condition / grade" />
         )}
+        <input
+          className="form-input data"
+          value={item.manualCurrentValue}
+          onChange={(event) => onUpdate(item.result.id, { manualCurrentValue: event.target.value })}
+          placeholder="Manual current value (optional)"
+        />
+        <p className="text-[11px] leading-5 text-vault-muted">Use manual value when your exact card quality, grade, or owner context is not represented by the guide fields.</p>
         <input className="form-input data" value={item.costBasis} onChange={(event) => onUpdate(item.result.id, { costBasis: event.target.value })} placeholder="What you paid" />
         {item.costBasis ? (
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`rounded-md border px-3 py-2 ${gain >= 0 ? "border-vault-green/25 bg-vault-green/10" : "border-vault-red/25 bg-vault-red/10"}`}>
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`rounded-md border px-3 py-2 ${gain >= 0 ? "border-vault-green/25 bg-vault-green/10" : "border-vault-border bg-vault-surface"}`}>
             <div className="flex items-center justify-between gap-3 text-xs">
               <span className="text-vault-muted">Unrealized gain</span>
-              <span className={`data ${gain >= 0 ? "text-vault-green" : "text-vault-red"}`}>
+              <span className={`data ${gain >= 0 ? "text-vault-green" : "text-vault-muted"}`}>
                 {gain >= 0 ? "+" : "-"}{currency.format(Math.abs(gain))}{gainPct !== null ? ` (${gain >= 0 ? "+" : "-"}${Math.abs(gainPct * 100).toFixed(1)}%)` : ""}
               </span>
             </div>
@@ -446,7 +469,7 @@ function SummaryPanel({ value, cost, count }: { value: number; cost: number; cou
       <p className="data mt-3 text-4xl text-vault-gold">{currency.format(value)}</p>
       <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
         <span className="text-vault-muted">Positions <b className="data text-vault-text">{count}</b></span>
-        <span className={gain >= 0 ? "text-vault-green" : "text-vault-red"}>{gain >= 0 ? "+" : ""}{currency.format(gain)}</span>
+        <span className={gain >= 0 ? "text-vault-green" : "text-vault-muted"}>{gain >= 0 ? "+" : ""}{currency.format(gain)}</span>
       </div>
     </div>
   );

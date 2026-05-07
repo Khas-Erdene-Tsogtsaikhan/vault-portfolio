@@ -32,13 +32,15 @@ const ranges = ["1D", "1W", "1M", "3M", "YTD", "ALL"] as const;
 
 export function DashboardClient() {
   const items = useVaultStore((state) => state.items);
+  const portfolioSnapshots = useVaultStore((state) => state.portfolioSnapshots);
   const dismissed = useVaultStore((state) => state.dismissedMilestoneValue);
   const lastAddedItemId = useVaultStore((state) => state.lastAddedItemId);
   const dismissMilestone = useVaultStore((state) => state.dismissMilestone);
   const [range, setRange] = useState<(typeof ranges)[number]>("YTD");
   const [heroAnimating, setHeroAnimating] = useState(false);
   const metrics = getPortfolioMetrics(items);
-  const history = getPortfolioHistory(items);
+  const snapshotHistory = getSnapshotHistory(portfolioSnapshots);
+  const history = snapshotHistory.length >= 2 ? snapshotHistory : getPortfolioHistory(items);
   const rangeHistory = useMemo(() => filterHistoryForRange(history, range), [history, range]);
   const breakdown = getCategoryBreakdown(items);
   const milestone = getCrossedMilestone(metrics.totalValue);
@@ -123,12 +125,12 @@ export function DashboardClient() {
                   value={metrics.totalValue}
                   duration={2000}
                   formatter={(value) => preciseCurrency.format(value)}
-                  className={heroAnimating ? (heroDeltaPositive ? "text-vault-green" : "text-vault-red") : "text-vault-text transition-colors duration-500"}
+                  className={heroAnimating ? (heroDeltaPositive ? "text-vault-green" : "text-vault-gold") : "text-vault-text transition-colors duration-500"}
                   onStart={() => setHeroAnimating(true)}
                   onEnd={() => setHeroAnimating(false)}
                 />
               </h1>
-              <div className={`mt-2 inline-flex items-center gap-2 rounded border px-3 py-1.5 font-mono text-[13px] ${metrics.todayDelta >= 0 ? "border-vault-green/20 bg-vault-green/10 text-vault-green" : "border-vault-red/20 bg-vault-red/10 text-vault-red"}`}>
+              <div className={`mt-2 inline-flex items-center gap-2 rounded border px-3 py-1.5 font-mono text-[13px] ${metrics.todayDelta >= 0 ? "border-vault-green/20 bg-vault-green/10 text-vault-green" : "border-vault-border bg-vault-surface text-vault-muted"}`}>
                 {metrics.todayDelta >= 0 ? "▲" : "▼"} {metrics.todayDelta >= 0 ? "+" : ""}{preciseCurrency.format(metrics.todayDelta)} ({metrics.todayDeltaPercent >= 0 ? "+" : ""}{percent.format(metrics.todayDeltaPercent)}) Today
               </div>
             </div>
@@ -175,27 +177,27 @@ export function DashboardClient() {
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1.45fr)_440px]">
           <div className="border-b border-vault-border p-4 sm:p-6 xl:border-b-0 xl:border-r">
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
-              <IndexCard label="Your Portfolio" value={percent.format(metrics.totalReturnPercent)} detail={`${preciseCurrency.format(metrics.totalReturn)} total gain`} tone={metrics.totalReturn >= 0 ? "green" : "red"} />
-              <IndexCard label={index.name} value={percent.format(index.ytdReturn)} detail={`${percent.format(index.todayReturn)} today`} tone={index.ytdReturn >= 0 ? "green" : "red"} />
-              <IndexCard label="Benchmark" value={beatingMarket ? "Beating market ↑" : "Market catch-up"} detail={`${percent.format(metrics.totalReturnPercent - index.ytdReturn)} spread`} tone={beatingMarket ? "gold" : "red"} />
+              <IndexCard label="Your Portfolio" value={percent.format(metrics.totalReturnPercent)} detail={`${preciseCurrency.format(metrics.totalReturn)} total gain`} tone={metrics.totalReturn >= 0 ? "green" : "muted"} />
+              <IndexCard label={index.name} value={percent.format(index.ytdReturn)} detail={`${percent.format(index.todayReturn)} today`} tone={index.ytdReturn >= 0 ? "green" : "muted"} />
+              <IndexCard label="Benchmark" value={beatingMarket ? "Beating market ↑" : "Building history"} detail={`${percent.format(metrics.totalReturnPercent - index.ytdReturn)} spread`} tone={beatingMarket ? "gold" : "muted"} />
             </div>
             <div className="h-[360px] rounded-[10px] border border-vault-border bg-vault-black p-3 sm:h-[430px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={rangeHistory} margin={{ top: 18, right: 10, bottom: 8, left: 0 }}>
                   <defs>
                     <linearGradient id="vaultValueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={metrics.todayDelta >= 0 ? "#50c98a" : "#e06060"} stopOpacity={0.22} />
-                      <stop offset="85%" stopColor={metrics.todayDelta >= 0 ? "#50c98a" : "#e06060"} stopOpacity={0} />
+                      <stop offset="0%" stopColor={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} stopOpacity={0.22} />
+                      <stop offset="85%" stopColor={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} />
-                  <YAxis orientation="right" tickLine={false} axisLine={false} width={72} domain={["dataMin - 5000", "dataMax + 5000"]} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} tickFormatter={(value) => compactCurrency.format(Number(value))} />
+                  <YAxis orientation="right" tickLine={false} axisLine={false} width={72} domain={portfolioValueDomain} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} tickFormatter={(value) => compactCurrency.format(Number(value))} />
                   <Tooltip
                     cursor={{ stroke: "#2a2a3a" }}
                     contentStyle={{ background: "#111118", border: "1px solid #2a2a3a", borderRadius: 8, color: "#f0ece8" }}
                     formatter={(value: number, name: string) => [currency.format(value), name === "value" ? "Vault" : "S&P 500"]}
                   />
-                  <Area type="monotone" dataKey="value" stroke={metrics.todayDelta >= 0 ? "#50c98a" : "#e06060"} fill="url(#vaultValueGradient)" strokeWidth={3} dot={false} isAnimationActive animationDuration={800} animationEasing="ease-out" />
+                  <Area type="monotone" dataKey="value" stroke={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} fill="url(#vaultValueGradient)" strokeWidth={3} dot={false} isAnimationActive animationDuration={800} animationEasing="ease-out" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -212,7 +214,7 @@ export function DashboardClient() {
                   <article key={activity.id} className="rounded-[8px] border border-vault-border bg-vault-surface p-4">
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-sm font-medium leading-6 text-vault-text">{activity.itemName}</p>
-                      <span className={`data shrink-0 text-[12px] ${activity.deltaPercentage >= 0 ? "text-vault-green" : "text-vault-red"}`}>{percent.format(activity.deltaPercentage)}</span>
+                      <span className={`data shrink-0 text-[12px] ${activity.deltaPercentage >= 0 ? "text-vault-green" : "text-vault-muted"}`}>{percent.format(activity.deltaPercentage)}</span>
                     </div>
                     <p className="mt-1 text-xs leading-5 text-vault-muted">{activity.message}</p>
                   </article>
@@ -256,7 +258,7 @@ export function DashboardClient() {
                   </span>
                 </span>
                 <span className="data text-[13px] text-vault-text">{currency.format(getCurrentValue(item))}</span>
-                <span className={`data text-right text-[13px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
+                <span className={`data text-right text-[13px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-muted"}`}>
                   {daily.amount >= 0 ? "▲ +" : "▼ "}{preciseCurrency.format(daily.amount)} today
                   <span className="block text-[11px]">{daily.percentage >= 0 ? "+" : ""}{percent.format(daily.percentage)}</span>
                 </span>
@@ -279,8 +281,8 @@ function HeroStat({ value, label, tone = "text" }: { value: string; label: strin
   );
 }
 
-function IndexCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "green" | "red" | "gold" }) {
-  const color = tone === "green" ? "text-vault-green" : tone === "red" ? "text-vault-red" : "text-vault-gold";
+function IndexCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "green" | "muted" | "gold" }) {
+  const color = tone === "green" ? "text-vault-green" : tone === "muted" ? "text-vault-muted" : "text-vault-gold";
   return (
     <div className="rounded-[8px] border border-vault-border bg-vault-surface p-4">
       <p className="section-label">{label}</p>
@@ -320,6 +322,23 @@ function filterHistoryForRange<T extends { date?: string }>(history: T[], range:
   cutoff.setDate(lastDate.getDate() - days);
   const filtered = history.filter((point) => new Date(point.date ?? 0) >= cutoff);
   return filtered.length >= 2 ? filtered : history.slice(-Math.min(history.length, range === "1D" ? 2 : 8));
+}
+
+const portfolioValueDomain = ([dataMin, dataMax]: [number, number]): [number, number] => {
+  const min = Number.isFinite(dataMin) ? Math.max(0, dataMin) : 0;
+  const max = Number.isFinite(dataMax) ? Math.max(dataMax, min + 1) : min + 1;
+  const padding = Math.max((max - min) * 0.12, max * 0.04, 100);
+  return [Math.max(0, Math.floor(min - padding)), Math.ceil(max + padding)];
+};
+
+function getSnapshotHistory(snapshots: Array<{ snapshotDate: string; totalValue: number }>) {
+  return snapshots
+    .filter((snapshot) => snapshot.totalValue > 0)
+    .map((snapshot) => ({
+      date: `${snapshot.snapshotDate}T12:00:00.000Z`,
+      month: new Date(`${snapshot.snapshotDate}T12:00:00.000Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      value: snapshot.totalValue
+    }));
 }
 
 function getUpdateLabel(lastSyncedAt?: string) {

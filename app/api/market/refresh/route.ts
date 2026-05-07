@@ -168,7 +168,7 @@ async function writePortfolioSnapshotAndDigest(userId: string, snapshotDate: str
   if (!supabaseAdmin) return null;
   const { data: items, error } = await supabaseAdmin
     .from("items")
-    .select("id,current_value_market,current_value_user,cost_basis")
+    .select("id,name,current_value_market,current_value_user,cost_basis")
     .eq("user_id", userId)
     .eq("is_sold", false);
   if (error) return { userId, error: error.message };
@@ -190,6 +190,17 @@ async function writePortfolioSnapshotAndDigest(userId: string, snapshotDate: str
   const previousValue = Number(previous?.total_value ?? totalValue);
   const dailyDelta = totalValue - previousValue;
   const dailyDeltaPct = previousValue > 0 ? dailyDelta / previousValue : 0;
+
+  console.log("Writing snapshot:", {
+    userId,
+    totalValue,
+    itemCount: items?.length ?? 0,
+    items: (items ?? []).map((item) => ({
+      name: item.name,
+      value: Number(item.current_value_market ?? item.current_value_user ?? 0),
+      cost: Number(item.cost_basis ?? 0)
+    }))
+  });
 
   await supabaseAdmin.from("portfolio_snapshots").upsert({
     user_id: userId,

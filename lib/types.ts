@@ -108,6 +108,20 @@ export interface PriceHistoryPoint {
   recordedAt: string;
 }
 
+export interface PortfolioSnapshot {
+  id: string;
+  userId: string;
+  snapshotDate: string;
+  totalValue: number;
+  totalCostBasis: number;
+  totalGain: number;
+  totalGainPct: number;
+  dailyDelta: number;
+  dailyDeltaPct: number;
+  itemCount: number;
+  createdAt: string;
+}
+
 export interface MarketComp {
   id: string;
   source: string;

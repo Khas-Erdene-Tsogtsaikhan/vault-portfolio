@@ -3,7 +3,7 @@
 import type { User } from "@supabase/supabase-js";
 import { demoUser } from "@/lib/demo-data";
 import { storageBuckets, supabase } from "@/lib/supabase";
-import type { Category, Listing, NotificationEvent, NotificationPreferences, Offer, PriceHistoryPoint, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
+import type { Category, Listing, NotificationEvent, NotificationPreferences, Offer, PortfolioSnapshot, PriceHistoryPoint, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
 import { getTier } from "@/lib/portfolio-utils";
 import type { NewVaultItemInput } from "@/lib/vault-store";
 
@@ -12,6 +12,7 @@ const fallbackImage = "https://images.unsplash.com/photo-1606760227091-3dd870d97
 export interface RemoteVaultState {
   user: VaultUser;
   items: VaultItem[];
+  portfolioSnapshots: PortfolioSnapshot[];
   listings: Listing[];
   offers: Offer[];
   watchlist: WatchlistItem[];
@@ -44,6 +45,7 @@ export async function loadVaultFromSupabase(authUser: User): Promise<RemoteVault
     photosResult,
     docsResult,
     priceHistoryResult,
+    portfolioSnapshotResult,
     listingsResult,
     offersResult,
     watchlistResult,
@@ -55,6 +57,7 @@ export async function loadVaultFromSupabase(authUser: User): Promise<RemoteVault
     supabase.from("photos").select("*").order("order", { ascending: true }),
     supabase.from("documents").select("*").order("uploaded_at", { ascending: false }),
     supabase.from("price_history").select("*").order("recorded_at", { ascending: true }),
+    supabase.from("portfolio_snapshots").select("*").eq("user_id", authUser.id).order("snapshot_date", { ascending: true }),
     supabase.from("listings").select("*").eq("seller_user_id", authUser.id).order("created_at", { ascending: false }),
     supabase.from("offers").select("*").order("created_at", { ascending: false }),
     supabase.from("watchlist").select("*").eq("user_id", authUser.id).order("created_at", { ascending: false }),
@@ -62,7 +65,7 @@ export async function loadVaultFromSupabase(authUser: User): Promise<RemoteVault
     supabase.from("push_tokens").select("*").eq("user_id", authUser.id).order("created_at", { ascending: false })
   ]);
 
-  [profileResult, itemsResult, photosResult, docsResult, priceHistoryResult, listingsResult, offersResult, watchlistResult, notificationResult, tokenResult].forEach((result) => {
+  [profileResult, itemsResult, photosResult, docsResult, priceHistoryResult, portfolioSnapshotResult, listingsResult, offersResult, watchlistResult, notificationResult, tokenResult].forEach((result) => {
     if (result.error) throw result.error;
   });
 
@@ -83,10 +86,18 @@ export async function loadVaultFromSupabase(authUser: User): Promise<RemoteVault
   const user = mapProfile(profile, authUser, totalValue, items.length);
 
   await writePortfolioSnapshot(user.id, totalValue, items.reduce((sum, item) => sum + item.costBasis, 0), items.length);
+  const portfolioSnapshots = mergeTodaySnapshot(
+    (portfolioSnapshotResult.data ?? []).map(mapPortfolioSnapshot),
+    user.id,
+    totalValue,
+    items.reduce((sum, item) => sum + item.costBasis, 0),
+    items.length
+  );
 
   return {
     user,
     items,
+    portfolioSnapshots,
     listings: (listingsResult.data ?? []).map(mapListing),
     offers: (offersResult.data ?? []).filter((offer) => itemIds.has(offer.item_id)).map(mapOffer),
     watchlist: (watchlistResult.data ?? []).map(mapWatchlist),
@@ -101,6 +112,7 @@ export async function addVaultItemToSupabase(input: NewVaultItemInput, user: Vau
   const now = new Date().toISOString();
   const currentValueMarket = input.currentValueMarket ?? null;
   const currentValueUser = input.currentValueUser;
+  const displayCurrentValue = currentValueMarket ?? currentValueUser;
 
   const { data: itemRow, error } = await supabase.from("items").insert({
     user_id: user.id,
@@ -121,7 +133,7 @@ export async function addVaultItemToSupabase(input: NewVaultItemInput, user: Vau
     current_value_market: currentValueMarket,
     current_value_source: currentValueMarket ? (input.pricechartingId ? "PriceCharting Guide Value" : "eBay Sold Listings") : "Your estimate",
     current_value_updated_at: now,
-    value_24h_ago: currentValueUser,
+    value_24h_ago: displayCurrentValue,
     ebay_search_query: input.ebaySearchQuery ?? null,
     ebay_reference: input.ebayReference ?? null,
     price_low: input.priceLow ?? null,
@@ -333,6 +345,7 @@ async function insertInitialPriceHistory(itemId: string, costBasis: number, acqu
 async function writePortfolioSnapshot(userId: string, totalValue: number, totalCostBasis: number, itemCount: number) {
   if (!supabase) return;
   const snapshotDate = new Date().toISOString().slice(0, 10);
+  console.log("Writing snapshot:", { userId, totalValue, itemCount });
   await supabase.from("portfolio_snapshots").upsert({
     user_id: userId,
     snapshot_date: snapshotDate,
@@ -430,6 +443,46 @@ function mapDocument(row: any): VaultDocument {
 
 function mapPricePoint(row: any): PriceHistoryPoint {
   return { id: row.id, itemId: row.item_id, value: Number(row.value), source: row.source, recordedAt: row.recorded_at };
+}
+
+function mapPortfolioSnapshot(row: any): PortfolioSnapshot {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    snapshotDate: row.snapshot_date,
+    totalValue: Number(row.total_value ?? 0),
+    totalCostBasis: Number(row.total_cost_basis ?? 0),
+    totalGain: Number(row.total_gain ?? 0),
+    totalGainPct: Number(row.total_gain_pct ?? 0),
+    dailyDelta: Number(row.daily_delta ?? 0),
+    dailyDeltaPct: Number(row.daily_delta_pct ?? 0),
+    itemCount: Number(row.item_count ?? 0),
+    createdAt: row.created_at
+  };
+}
+
+function mergeTodaySnapshot(snapshots: PortfolioSnapshot[], userId: string, totalValue: number, totalCostBasis: number, itemCount: number) {
+  const today = new Date().toISOString().slice(0, 10);
+  const totalGain = totalValue - totalCostBasis;
+  const totalGainPct = totalCostBasis > 0 ? totalGain / totalCostBasis : 0;
+  const previous = [...snapshots].reverse().find((snapshot) => snapshot.snapshotDate < today);
+  const previousValue = previous?.totalValue ?? totalValue;
+  const dailyDelta = totalValue - previousValue;
+  const dailyDeltaPct = previousValue > 0 ? dailyDelta / previousValue : 0;
+  const current: PortfolioSnapshot = {
+    id: `snapshot-${userId}-${today}`,
+    userId,
+    snapshotDate: today,
+    totalValue,
+    totalCostBasis,
+    totalGain,
+    totalGainPct,
+    dailyDelta,
+    dailyDeltaPct,
+    itemCount,
+    createdAt: new Date().toISOString()
+  };
+  return [...snapshots.filter((snapshot) => snapshot.snapshotDate !== today), current].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
 }
 
 function mapListing(row: any): Listing {

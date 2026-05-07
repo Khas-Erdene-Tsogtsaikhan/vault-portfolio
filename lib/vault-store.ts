@@ -7,7 +7,7 @@ import { buildNotificationEvents, createMockWebPushToken, defaultNotificationPre
 import { getTier } from "@/lib/portfolio-utils";
 import { addProofFilesToSupabaseItem, addVaultItemToSupabase, deleteSupabaseItem, deleteSupabasePhoto, insertSupabaseNotificationEvents, insertSupabasePushToken, loadVaultFromSupabase, setSupabaseOpenToOffers, setSupabasePrimaryPhoto, updateSupabaseEstimate, updateSupabaseItemDetails, updateSupabaseNotificationPrefs } from "@/lib/supabase-db";
 import { supabase } from "@/lib/supabase";
-import type { Category, Listing, MarketSearchResult, NotificationEvent, NotificationPreferences, Offer, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
+import type { Category, Listing, MarketSearchResult, NotificationEvent, NotificationPreferences, Offer, PortfolioSnapshot, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
 
 export interface NewVaultItemInput {
   name: string;
@@ -43,6 +43,7 @@ export interface NewVaultItemInput {
 interface VaultState {
   user: VaultUser;
   items: VaultItem[];
+  portfolioSnapshots: PortfolioSnapshot[];
   listings: Listing[];
   offers: Offer[];
   watchlist: WatchlistItem[];
@@ -80,6 +81,7 @@ export const useVaultStore = create<VaultState>()(
     (set, get) => ({
       user: demoUser,
       items: demoItems,
+      portfolioSnapshots: [],
       listings: demoListings,
       offers: demoOffers,
       watchlist: demoWatchlist,
@@ -108,6 +110,7 @@ export const useVaultStore = create<VaultState>()(
       resetToDemo: () => set({
         user: demoUser,
         items: demoItems,
+        portfolioSnapshots: [],
         listings: demoListings,
         offers: demoOffers,
         watchlist: demoWatchlist,
@@ -126,6 +129,7 @@ export const useVaultStore = create<VaultState>()(
           const totalValue = items.reduce((sum, vaultItem) => sum + (vaultItem.currentValueMarket ?? vaultItem.currentValueUser), 0);
           set((current) => ({
             items,
+            portfolioSnapshots: upsertLocalPortfolioSnapshot(current.portfolioSnapshots, current.user.id, items),
             lastAddedItemId: item.id,
             user: { ...current.user, tier: getTier(totalValue), totalItems: items.length, totalValueCached: totalValue, streakMonths: Math.max(current.user.streakMonths, 1) }
           }));
@@ -170,7 +174,7 @@ export const useVaultStore = create<VaultState>()(
           currentValueMarket: input.currentValueMarket,
           currentValueSource: input.currentValueMarket ? (input.pricechartingId ? "PriceCharting Guide Value" : "eBay Sold Listings") : "Your estimate",
           currentValueUpdatedAt: now,
-          value24hAgo: input.currentValueUser,
+          value24hAgo: input.currentValueMarket ?? input.currentValueUser,
           ebaySearchQuery: input.ebaySearchQuery,
           ebayReference: input.ebayReference,
           priceLow: input.priceLow,
@@ -199,6 +203,7 @@ export const useVaultStore = create<VaultState>()(
         const totalValue = items.reduce((sum, vaultItem) => sum + (vaultItem.currentValueMarket ?? vaultItem.currentValueUser), 0);
         set((state) => ({
           items,
+          portfolioSnapshots: upsertLocalPortfolioSnapshot(state.portfolioSnapshots, state.user.id, items),
           lastAddedItemId: item.id,
           user: {
             ...state.user,
@@ -278,6 +283,7 @@ export const useVaultStore = create<VaultState>()(
           const totalValue = items.reduce((sum, item) => sum + (item.currentValueMarket ?? item.currentValueUser), 0);
           return {
             items,
+            portfolioSnapshots: upsertLocalPortfolioSnapshot(current.portfolioSnapshots, current.user.id, items),
             listings: current.listings.filter((listing) => listing.itemId !== itemId),
             offers: current.offers.filter((offer) => offer.itemId !== itemId),
             lastAddedItemId: current.lastAddedItemId === itemId ? undefined : current.lastAddedItemId,
@@ -313,6 +319,15 @@ export const useVaultStore = create<VaultState>()(
                 }
               : item
           ),
+          portfolioSnapshots: upsertLocalPortfolioSnapshot(state.portfolioSnapshots, state.user.id, state.items.map((item) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  ...input,
+                  currentValueMarket: input.currentValueUser !== undefined ? undefined : item.currentValueMarket
+                }
+              : item
+          )),
           user: withRollups(state.user, state.items.map((item) =>
             item.id === itemId
               ? {
@@ -343,6 +358,7 @@ export const useVaultStore = create<VaultState>()(
                 }
               : item
           ),
+          portfolioSnapshots: upsertLocalPortfolioSnapshot(state.portfolioSnapshots, state.user.id, state.items.map((item) => item.id === itemId ? { ...item, currentValueUser: value, currentValueMarket: undefined } : item)),
           user: withRollups(state.user, state.items.map((item) => item.id === itemId ? { ...item, currentValueUser: value, currentValueMarket: undefined } : item))
         }));
         if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
@@ -466,4 +482,27 @@ function withRollups(user: VaultUser, items: VaultItem[]) {
     totalItems: items.length,
     totalValueCached: totalValue
   };
+}
+
+function upsertLocalPortfolioSnapshot(snapshots: PortfolioSnapshot[], userId: string, items: VaultItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+  const totalValue = items.reduce((sum, item) => sum + (item.currentValueMarket ?? item.currentValueUser), 0);
+  const totalCostBasis = items.reduce((sum, item) => sum + item.costBasis, 0);
+  const totalGain = totalValue - totalCostBasis;
+  const previous = [...snapshots].reverse().find((snapshot) => snapshot.snapshotDate < today);
+  const previousValue = previous?.totalValue ?? totalValue;
+  const snapshot: PortfolioSnapshot = {
+    id: `snapshot-${userId}-${today}`,
+    userId,
+    snapshotDate: today,
+    totalValue,
+    totalCostBasis,
+    totalGain,
+    totalGainPct: totalCostBasis > 0 ? totalGain / totalCostBasis : 0,
+    dailyDelta: totalValue - previousValue,
+    dailyDeltaPct: previousValue > 0 ? (totalValue - previousValue) / previousValue : 0,
+    itemCount: items.length,
+    createdAt: new Date().toISOString()
+  };
+  return [...snapshots.filter((item) => item.snapshotDate !== today), snapshot].sort((a, b) => a.snapshotDate.localeCompare(b.snapshotDate));
 }
