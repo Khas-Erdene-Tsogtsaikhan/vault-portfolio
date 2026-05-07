@@ -20,6 +20,7 @@ export interface PriceChartingSearchDocument {
   has_graded_price: boolean;
   has_new_price: boolean;
   image_url: string | null;
+  image_source?: "pricecharting" | "pricecharting_page" | "pokemon_tcg" | "scryfall" | "user" | null;
   price_fields: Record<string, number>;
   last_synced_at: string;
 }
@@ -72,6 +73,7 @@ export function csvRowToSearchDocument(row: Record<string, string>, fallbackCate
     has_graded_price: Boolean(graded),
     has_new_price: Boolean(nextNew),
     image_url: normalizeImage(field(row, "image-url") || field(row, "image")),
+    image_source: field(row, "image-url") || field(row, "image") ? "pricecharting" : null,
     price_fields: priceFields,
     last_synced_at: new Date().toISOString()
   };

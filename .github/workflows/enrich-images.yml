@@ -1,0 +1,31 @@
+name: Enrich Catalog Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Maximum missing catalog images to enrich this run"
+        required: true
+        default: "1000"
+
+jobs:
+  enrich:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Enrich Meilisearch catalog images
+        env:
+          MEILI_HOST: ${{ secrets.MEILI_HOST }}
+          MEILI_MASTER_KEY: ${{ secrets.MEILI_MASTER_KEY }}
+          POKEMON_TCG_API_KEY: ${{ secrets.POKEMON_TCG_API_KEY }}
+          IMAGE_ENRICH_LIMIT: ${{ inputs.limit }}
+        run: npm run enrich:images

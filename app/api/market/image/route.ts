@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { extractPriceChartingImage, slug } from "@/lib/catalog-image-resolver";
 
 export const dynamic = "force-dynamic";
 
@@ -25,37 +26,13 @@ export async function GET(request: Request) {
     });
     if (!response.ok) throw new Error(`PriceCharting page returned ${response.status}`);
     const html = await response.text();
-    const imageUrl = extractImageUrl(html);
+    const imageUrl = extractPriceChartingImage(html);
     imageCache.set(key, { url: imageUrl, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
     return imageUrl ? NextResponse.redirect(imageUrl) : svgFallback(name);
   } catch {
     imageCache.set(key, { url: null, expiresAt: Date.now() + 60 * 60 * 1000 });
     return svgFallback(name);
   }
-}
-
-function extractImageUrl(html: string) {
-  const og = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)?.[1];
-  if (og) return normalizeImageUrl(og);
-  const direct = html.match(/https:\/\/storage\.googleapis\.com\/images\.pricecharting\.com\/[^"'\s<>]+\/(?:200|400|1600)\.jpg/i)?.[0];
-  if (direct) return direct;
-  const relative = html.match(/\/images\.pricecharting\.com\/[^"'\s<>]+\/(?:200|400|1600)\.jpg/i)?.[0];
-  return relative ? `https://storage.googleapis.com${relative}` : null;
-}
-
-function normalizeImageUrl(value: string) {
-  if (value.startsWith("http")) return value;
-  if (value.startsWith("//")) return `https:${value}`;
-  return `https://www.pricecharting.com${value}`;
-}
-
-function slug(value: string) {
-  return value
-    .toLowerCase()
-    .replace(/&/g, "and")
-    .replace(/#/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
 }
 
 function svgFallback(name: string) {

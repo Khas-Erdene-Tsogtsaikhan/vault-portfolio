@@ -12,6 +12,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "sync:catalog": "tsx scripts/seed-meilisearch.ts",
+    "enrich:images": "tsx scripts/enrich-meilisearch-images.ts",
     "refresh:daily": "tsx scripts/run-daily-refresh.ts"
   },
   "dependencies": {
