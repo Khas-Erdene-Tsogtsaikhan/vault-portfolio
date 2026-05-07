@@ -8,6 +8,7 @@ import { Crown, Flame, Gem, Plus, Trophy } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { AppShell } from "@/components/AppShell";
+import { AssetImage } from "@/components/AssetImage";
 import { CategoryBars } from "@/components/CategoryBars";
 import { marketActivity, marketIndices } from "@/lib/demo-data";
 import {
@@ -20,6 +21,7 @@ import {
   getItemReturn,
   getPortfolioHistory,
   getPortfolioMetrics,
+  getPrimaryPhoto,
   percent,
   preciseCurrency
 } from "@/lib/portfolio-utils";
@@ -202,10 +204,15 @@ export function DashboardClient() {
         {holdings.map((item) => {
           const daily = getItemDailyDelta(item);
           return (
-            <Link key={item.id} href={`/collection/${item.id}`} className="grid grid-cols-[1fr_auto] items-center gap-4 border-b border-vault-border px-5 py-4 transition last:border-b-0 hover:bg-vault-gold/5 sm:grid-cols-[1fr_auto_auto]">
-              <span>
-                <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>
-                <span className="block text-[11px] text-vault-faint">{item.condition} · {item.category.replace("_", " ")}</span>
+            <Link key={item.id} href={`/collection/${item.id}`} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-vault-border px-5 py-4 transition last:border-b-0 hover:bg-vault-gold/5 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <span className="flex min-w-0 items-center gap-3">
+                <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-vault-border bg-vault-black">
+                  <AssetImage src={getPrimaryPhoto(item.photos)?.url} alt={item.name} sizes="44px" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-medium text-vault-text">{item.name}</span>
+                  <span className="block truncate text-[11px] text-vault-faint">{item.condition} · {item.category.replace("_", " ")}</span>
+                </span>
               </span>
               <span className="data text-[13px] text-vault-text">{currency.format(item.currentValueUser)}</span>
               <span className={`data text-right text-[13px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
