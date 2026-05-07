@@ -20,15 +20,15 @@ import {
   getItemDailyDelta,
   getItemHighLow,
   getItemReturn,
-  getPortfolioHistory,
   getPortfolioMetrics,
   getPrimaryPhoto,
   percent,
   preciseCurrency
 } from "@/lib/portfolio-utils";
+import type { PortfolioSnapshot, VaultItem } from "@/lib/types";
 import { useVaultStore } from "@/lib/vault-store";
 
-const ranges = ["1D", "1W", "1M", "3M", "YTD", "ALL"] as const;
+const ranges = ["1H", "1D", "1W", "1M", "3M", "YTD", "ALL"] as const;
 
 export function DashboardClient() {
   const items = useVaultStore((state) => state.items);
@@ -39,9 +39,16 @@ export function DashboardClient() {
   const [range, setRange] = useState<(typeof ranges)[number]>("YTD");
   const [heroAnimating, setHeroAnimating] = useState(false);
   const metrics = getPortfolioMetrics(items);
-  const snapshotHistory = getSnapshotHistory(portfolioSnapshots);
-  const history = snapshotHistory.length >= 2 ? snapshotHistory : getPortfolioHistory(items);
-  const rangeHistory = useMemo(() => filterHistoryForRange(history, range), [history, range]);
+  const rangeHistory = useMemo(() => buildPortfolioTimeline(items, portfolioSnapshots, range), [items, portfolioSnapshots, range]);
+  const rangeMove = getRangeMove(rangeHistory);
+  const trustSummary = getPortfolioTrustSummary(items);
+  const bestReturn = getItemReturn(metrics.bestPerformer);
+  const bestReturnValue = metrics.bestPerformer.costBasis > 0
+    ? percent.format(bestReturn.percentage)
+    : bestReturn.amount > 0
+      ? `+${currency.format(bestReturn.amount)}`
+      : "First signal";
+  const rankValue = metrics.percentile > 0 ? `Top ${Math.max(1, Math.round(100 - metrics.percentile))}%` : "Forming";
   const breakdown = getCategoryBreakdown(items);
   const milestone = getCrossedMilestone(metrics.totalValue);
   const showMilestone = milestone && milestone.value !== dismissed;
@@ -133,6 +140,7 @@ export function DashboardClient() {
               <div className={`mt-2 inline-flex items-center gap-2 rounded border px-3 py-1.5 font-mono text-[13px] ${metrics.todayDelta >= 0 ? "border-vault-green/20 bg-vault-green/10 text-vault-green" : "border-vault-border bg-vault-surface text-vault-muted"}`}>
                 {metrics.todayDelta >= 0 ? "▲" : "▼"} {metrics.todayDelta >= 0 ? "+" : ""}{preciseCurrency.format(metrics.todayDelta)} ({metrics.todayDeltaPercent >= 0 ? "+" : ""}{percent.format(metrics.todayDeltaPercent)}) Today
               </div>
+              <p className="mt-3 max-w-2xl text-xs leading-5 text-vault-muted">{trustSummary}</p>
             </div>
             <Link href="/add" className="inline-flex h-10 items-center justify-center gap-2 rounded bg-vault-gold px-5 text-xs font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light">
               <Plus size={15} />
@@ -143,8 +151,8 @@ export function DashboardClient() {
           <div className="mt-8 flex flex-wrap gap-10">
             <HeroStat value={metrics.itemCount.toString()} label="Items owned" />
             <HeroStat value={currency.format(metrics.totalValue / Math.max(metrics.itemCount, 1))} label="Avg. item value" />
-            <HeroStat value={percent.format(getItemReturn(metrics.bestPerformer).percentage)} label="Best return ever" tone="green" />
-            <HeroStat value={`Top ${metrics.percentile}%`} label="Among collectors" tone="gold" />
+            <HeroStat value={bestReturnValue} label="Best return ever" tone="green" />
+            <HeroStat value={rankValue} label="Among collectors" tone="gold" />
           </div>
         </div>
       </section>
@@ -153,7 +161,7 @@ export function DashboardClient() {
         <PrideCard icon={Crown} label="Crown Jewel" title={metrics.topItem.name} value={compactCurrency.format(getCurrentValue(metrics.topItem))} detail={`${percent.format(getItemReturn(metrics.topItem).percentage)} since you paid ${compactCurrency.format(metrics.topItem.costBasis)}`} featured />
         <PrideCard icon={Flame} label="Hottest Category" title={metrics.hottestCategory ? metrics.hottestCategory.category.replace("_", " ") : "None"} value={metrics.hottestCategory ? percent.format(metrics.hottestCategory.returnPercentage) : "0%"} detail="Best performing category right now" />
         <PrideCard icon={Gem} label="Rarest Piece" title={metrics.rarestPiece.name} value={metrics.rarestPiece.editionTotal ? `#${metrics.rarestPiece.editionNumber}/${metrics.rarestPiece.editionTotal}` : "Unique"} detail="Scarcity signal in your vault" />
-        <PrideCard icon={Trophy} label="Acquisition Streak" title={`${metrics.acquisitionStreak} months`} value="Active" detail="Consecutive months adding pieces" />
+        <PrideCard icon={Trophy} label="Acquisition Streak" title={`${metrics.acquisitionStreak} month${metrics.acquisitionStreak === 1 ? "" : "s"}`} value={metrics.acquisitionStreak ? "Active" : "Ready"} detail={metrics.acquisitionStreak ? "Consecutive months adding pieces" : "Add another asset this month to start a streak"} />
       </section>
 
       <section className="mb-7 vault-panel overflow-hidden rounded-[12px]">
@@ -177,29 +185,33 @@ export function DashboardClient() {
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1.45fr)_440px]">
           <div className="border-b border-vault-border p-4 sm:p-6 xl:border-b-0 xl:border-r">
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
-              <IndexCard label="Your Portfolio" value={percent.format(metrics.totalReturnPercent)} detail={`${preciseCurrency.format(metrics.totalReturn)} total gain`} tone={metrics.totalReturn >= 0 ? "green" : "muted"} />
+              <IndexCard label={`${range} Move`} value={`${rangeMove.delta >= 0 ? "+" : ""}${preciseCurrency.format(rangeMove.delta)}`} detail={`${rangeMove.deltaPct >= 0 ? "+" : ""}${percent.format(rangeMove.deltaPct)} across selected range`} tone={rangeMove.delta >= 0 ? "green" : "muted"} />
               <IndexCard label={index.name} value={percent.format(index.ytdReturn)} detail={`${percent.format(index.todayReturn)} today`} tone={index.ytdReturn >= 0 ? "green" : "muted"} />
               <IndexCard label="Benchmark" value={beatingMarket ? "Beating market ↑" : "Building history"} detail={`${percent.format(metrics.totalReturnPercent - index.ytdReturn)} spread`} tone={beatingMarket ? "gold" : "muted"} />
             </div>
-            <div className="h-[360px] rounded-[10px] border border-vault-border bg-vault-black p-3 sm:h-[430px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={rangeHistory} margin={{ top: 18, right: 10, bottom: 8, left: 0 }}>
+            <div className="flex h-[360px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-3 sm:h-[430px]">
+              <div className="min-h-0 flex-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={rangeHistory} margin={{ top: 18, right: 10, bottom: 8, left: 0 }}>
                   <defs>
                     <linearGradient id="vaultValueGradient" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} stopOpacity={0.22} />
                       <stop offset="85%" stopColor={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} />
+                  <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={22} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} />
                   <YAxis orientation="right" tickLine={false} axisLine={false} width={72} domain={portfolioValueDomain} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} tickFormatter={(value) => compactCurrency.format(Number(value))} />
                   <Tooltip
                     cursor={{ stroke: "#2a2a3a" }}
                     contentStyle={{ background: "#111118", border: "1px solid #2a2a3a", borderRadius: 8, color: "#f0ece8" }}
                     formatter={(value: number, name: string) => [currency.format(value), name === "value" ? "Vault" : "S&P 500"]}
+                    labelFormatter={(_, payload: any) => payload?.[0]?.payload?.tooltipLabel ?? ""}
                   />
-                  <Area type="monotone" dataKey="value" stroke={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} fill="url(#vaultValueGradient)" strokeWidth={3} dot={false} isAnimationActive animationDuration={800} animationEasing="ease-out" />
-                </AreaChart>
-              </ResponsiveContainer>
+                  <Area type="monotone" dataKey="value" stroke={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} fill="url(#vaultValueGradient)" strokeWidth={3} dot={false} activeDot={{ r: 4, stroke: "#f0ece8", strokeWidth: 1 }} connectNulls isAnimationActive animationDuration={800} animationEasing="ease-out" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-vault-faint">Source: portfolio snapshots + item price history · {range} range · hover for exact timestamp</p>
             </div>
           </div>
 
@@ -254,10 +266,13 @@ export function DashboardClient() {
                       <span className="block truncate text-[13px] font-medium text-vault-text">{item.name}</span>
                       {isAth ? <span className="rounded border border-vault-gold/30 bg-vault-gold/10 px-1.5 py-0.5 font-mono text-[9px] text-vault-gold">ATH</span> : null}
                     </span>
-                    <span className="block truncate text-[11px] text-vault-faint">{item.condition} · {item.category.replace("_", " ")} · {getUpdateLabel(item.currentValueUpdatedAt)}</span>
+                    <span className="block truncate text-[11px] text-vault-faint">Condition: {item.condition} · {item.category.replace("_", " ")} · {getUpdateLabel(item.currentValueUpdatedAt)}</span>
                   </span>
                 </span>
-                <span className="data text-[13px] text-vault-text">{currency.format(getCurrentValue(item))}</span>
+                <span className="text-right">
+                  <span className="data block text-[13px] text-vault-text">{currency.format(getCurrentValue(item))}</span>
+                  <span className="block text-[10px] text-vault-faint">{getValueSourceLabel(item)}</span>
+                </span>
                 <span className={`data text-right text-[13px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-muted"}`}>
                   {daily.amount >= 0 ? "▲ +" : "▼ "}{preciseCurrency.format(daily.amount)} today
                   <span className="block text-[11px]">{daily.percentage >= 0 ? "+" : ""}{percent.format(daily.percentage)}</span>
@@ -314,16 +329,6 @@ function PrideCard({ icon: Icon, label, title, value, detail, featured = false }
   );
 }
 
-function filterHistoryForRange<T extends { date?: string }>(history: T[], range: (typeof ranges)[number]) {
-  if (range === "ALL" || history.length <= 2) return history;
-  const days = range === "1D" ? 1 : range === "1W" ? 7 : range === "1M" ? 31 : range === "3M" ? 92 : 366;
-  const lastDate = new Date(history.at(-1)?.date ?? Date.now());
-  const cutoff = new Date(lastDate);
-  cutoff.setDate(lastDate.getDate() - days);
-  const filtered = history.filter((point) => new Date(point.date ?? 0) >= cutoff);
-  return filtered.length >= 2 ? filtered : history.slice(-Math.min(history.length, range === "1D" ? 2 : 8));
-}
-
 const portfolioValueDomain = ([dataMin, dataMax]: [number, number]): [number, number] => {
   const min = Number.isFinite(dataMin) ? Math.max(0, dataMin) : 0;
   const max = Number.isFinite(dataMax) ? Math.max(dataMax, min + 1) : min + 1;
@@ -331,22 +336,124 @@ const portfolioValueDomain = ([dataMin, dataMax]: [number, number]): [number, nu
   return [Math.max(0, Math.floor(min - padding)), Math.ceil(max + padding)];
 };
 
-function getSnapshotHistory(snapshots: Array<{ snapshotDate: string; totalValue: number }>) {
-  return snapshots
-    .filter((snapshot) => snapshot.totalValue > 0)
-    .map((snapshot) => ({
-      date: `${snapshot.snapshotDate}T12:00:00.000Z`,
-      month: new Date(`${snapshot.snapshotDate}T12:00:00.000Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-      value: snapshot.totalValue
-    }));
+function buildPortfolioTimeline(items: VaultItem[], snapshots: PortfolioSnapshot[], range: (typeof ranges)[number]) {
+  const now = new Date();
+  const start = getRangeStart(range, now, items, snapshots);
+  const timeSet = new Set<number>([start.getTime(), now.getTime()]);
+
+  for (const snapshot of snapshots) {
+    const date = new Date(snapshot.createdAt || `${snapshot.snapshotDate}T12:00:00`);
+    if (date >= start && date <= now) timeSet.add(date.getTime());
+  }
+
+  for (const item of items) {
+    [item.createdAt, item.updatedAt, item.currentValueUpdatedAt, ...item.priceHistory.map((point) => point.recordedAt)]
+      .map((value) => new Date(value))
+      .filter((date) => Number.isFinite(date.getTime()) && date >= start && date <= now)
+      .forEach((date) => timeSet.add(date.getTime()));
+  }
+
+  const times = Array.from(timeSet).sort((a, b) => a - b);
+  const sampledTimes = thinTimeline(times, range);
+  return sampledTimes.map((time, index) => {
+    const date = new Date(time);
+    const value = items.reduce((sum, item) => sum + getTrackedItemValueAt(item, date), 0);
+    return {
+      date: date.toISOString(),
+      label: formatAxisLabel(date, range),
+      tooltipLabel: formatTooltipLabel(date),
+      value,
+      sp500: value * (1 + index * 0.002)
+    };
+  });
+}
+
+function getRangeMove(history: Array<{ value: number }>) {
+  const first = history[0]?.value ?? 0;
+  const last = history.at(-1)?.value ?? first;
+  const delta = last - first;
+  return { delta, deltaPct: first > 0 ? delta / first : 0 };
+}
+
+function getPortfolioTrustSummary(items: VaultItem[]) {
+  const marketCount = items.filter((item) => item.currentValueSource === "PriceCharting Guide Value").length;
+  const manualCount = items.length - marketCount;
+  const latestSync = items
+    .map((item) => new Date(item.currentValueUpdatedAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+  const source = marketCount && manualCount
+    ? `PriceCharting Guide Value on ${marketCount} item${marketCount === 1 ? "" : "s"} · ${manualCount} manual estimate${manualCount === 1 ? "" : "s"}`
+    : marketCount
+      ? "PriceCharting Guide Value"
+      : "Manual owner estimates";
+  return `${source} · ${latestSync ? getUpdateLabel(new Date(latestSync).toISOString()) : "Sync pending"} · Conditions tracked per asset`;
+}
+
+function getValueSourceLabel(item: VaultItem) {
+  if (item.currentValueSource === "PriceCharting Guide Value") return "PriceCharting Guide Value";
+  if (item.currentValueSource === "Your estimate") return "Manual estimate";
+  return item.currentValueSource;
+}
+
+function getRangeStart(range: (typeof ranges)[number], now: Date, items: VaultItem[], snapshots: PortfolioSnapshot[]) {
+  const start = new Date(now);
+  if (range === "1H") start.setHours(now.getHours() - 1);
+  if (range === "1D") start.setDate(now.getDate() - 1);
+  if (range === "1W") start.setDate(now.getDate() - 7);
+  if (range === "1M") start.setMonth(now.getMonth() - 1);
+  if (range === "3M") start.setMonth(now.getMonth() - 3);
+  if (range === "YTD") return new Date(now.getFullYear(), 0, 1);
+  if (range !== "ALL") return start;
+
+  const candidates = [
+    ...items.map((item) => new Date(item.createdAt).getTime()),
+    ...snapshots.map((snapshot) => new Date(snapshot.createdAt || `${snapshot.snapshotDate}T12:00:00`).getTime())
+  ].filter(Number.isFinite);
+  return candidates.length ? new Date(Math.min(...candidates)) : new Date(now.getTime() - 86400000);
+}
+
+function thinTimeline(times: number[], range: (typeof ranges)[number]) {
+  const maxPoints = range === "1H" || range === "1D" ? 36 : range === "1W" ? 42 : 60;
+  if (times.length <= maxPoints) return times;
+  const step = Math.ceil(times.length / maxPoints);
+  const sampled = times.filter((_, index) => index % step === 0);
+  if (sampled.at(-1) !== times.at(-1)) sampled.push(times.at(-1)!);
+  return sampled;
+}
+
+function getTrackedItemValueAt(item: VaultItem, date: Date) {
+  const trackedAt = new Date(item.createdAt).getTime();
+  const at = date.getTime();
+  if (at < trackedAt) return 0;
+
+  const history = [
+    ...item.priceHistory.map((point) => ({ value: point.value, time: new Date(point.recordedAt).getTime() })),
+    { value: getCurrentValue(item), time: new Date(item.currentValueUpdatedAt).getTime() }
+  ]
+    .filter((point) => Number.isFinite(point.time))
+    .sort((a, b) => a.time - b.time);
+
+  const point = [...history].reverse().find((candidate) => candidate.time <= at);
+  return point?.value ?? getCurrentValue(item);
+}
+
+function formatAxisLabel(date: Date, range: (typeof ranges)[number]) {
+  if (range === "1H" || range === "1D") return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (range === "1W") return date.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
+  if (range === "1M" || range === "3M" || range === "YTD") return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+}
+
+function formatTooltipLabel(date: Date) {
+  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
 }
 
 function getUpdateLabel(lastSyncedAt?: string) {
   if (!lastSyncedAt) return "Sync pending";
   const hours = Math.floor((Date.now() - new Date(lastSyncedAt).getTime()) / 3600000);
-  if (hours < 1) return "Updated just now";
-  if (hours < 6) return `Updated ${hours}h ago`;
-  if (hours < 24) return "Updated today";
-  if (hours < 48) return "Updated yesterday";
-  return `Synced ${Math.floor(hours / 24)}d ago`;
+  if (hours < 1) return "Last synced just now";
+  if (hours < 24) return `Last synced ${hours}h ago`;
+  if (hours < 48) return "Last synced yesterday";
+  return `Last synced ${Math.floor(hours / 24)}d ago`;
 }

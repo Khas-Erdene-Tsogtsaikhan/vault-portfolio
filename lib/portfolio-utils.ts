@@ -129,6 +129,7 @@ export function getNextTierProgress(totalValue: number) {
 }
 
 export function getPercentile(totalValue: number) {
+  if (totalValue <= 0) return 0;
   if (totalValue >= 1000000) return 99.7;
   if (totalValue >= 500000) return 99;
   if (totalValue >= 250000) return 97;
@@ -136,7 +137,8 @@ export function getPercentile(totalValue: number) {
   if (totalValue >= 50000) return 89;
   if (totalValue >= 25000) return 82;
   if (totalValue >= 10000) return 72;
-  return Math.max(37, Math.round(totalValue / 250));
+  if (totalValue >= 1000) return Math.round(38 + ((totalValue - 1000) / 9000) * 34);
+  return Math.max(1, Math.round((totalValue / 1000) * 38));
 }
 
 export function getPortfolioMetrics(items: VaultItem[]) {
@@ -148,8 +150,8 @@ export function getPortfolioMetrics(items: VaultItem[]) {
   const todayDelta = totalValue - value24hAgo;
   const todayDeltaPercent = value24hAgo ? todayDelta / value24hAgo : 0;
   const topItem = [...items].sort((a, b) => getCurrentValue(b) - getCurrentValue(a))[0] ?? emptyVaultItem;
-  const bestPerformer = [...items].sort((a, b) => getItemReturn(b).percentage - getItemReturn(a).percentage)[0] ?? emptyVaultItem;
-  const worstPerformer = [...items].sort((a, b) => getItemReturn(a).percentage - getItemReturn(b).percentage)[0] ?? emptyVaultItem;
+  const bestPerformer = [...items].sort((a, b) => sortByReturn(b, a))[0] ?? emptyVaultItem;
+  const worstPerformer = [...items].sort((a, b) => sortByReturn(a, b))[0] ?? emptyVaultItem;
   const rarestPiece = [...items].sort((a, b) => rarityScore(a) - rarityScore(b))[0] ?? emptyVaultItem;
   const categoryBreakdown = getCategoryBreakdown(items);
   const hottestCategory = [...categoryBreakdown].sort((a, b) => b.returnPercentage - a.returnPercentage)[0];
@@ -265,7 +267,7 @@ export function getCompletenessScore(item: VaultItem) {
 export function getAcquisitionStreak(items: VaultItem[]) {
   if (!items.length) return 0;
   const monthKeys = new Set(items.map((item) => item.createdAt.slice(0, 7)));
-  const start = new Date("2026-05-01T00:00:00Z");
+  const start = new Date();
   let streak = 0;
   for (let i = 0; i < 24; i += 1) {
     const date = new Date(start);
@@ -274,7 +276,7 @@ export function getAcquisitionStreak(items: VaultItem[]) {
     if (!monthKeys.has(key)) break;
     streak += 1;
   }
-  return Math.max(streak, 7);
+  return streak;
 }
 
 export function getCrossedMilestone(totalValue: number) {
@@ -296,6 +298,13 @@ function rarityScore(item: VaultItem) {
 
 function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function sortByReturn(a: VaultItem, b: VaultItem) {
+  const aReturn = getItemReturn(a);
+  const bReturn = getItemReturn(b);
+  if (aReturn.percentage !== bReturn.percentage) return aReturn.percentage - bReturn.percentage;
+  return aReturn.amount - bReturn.amount;
 }
 
 function getItemValueAt(item: VaultItem, date: string) {
