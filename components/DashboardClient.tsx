@@ -4,11 +4,12 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Crown, Flame, Gem, Plus, Trophy } from "lucide-react";
+import { Crown, Flame, Plus, Trophy } from "lucide-react";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AnimatedNumber } from "@/components/AnimatedNumber";
 import { AppShell } from "@/components/AppShell";
 import { AssetImage } from "@/components/AssetImage";
+import { WrappedPrideCard } from "@/components/ShareCards";
 import { CategoryBars } from "@/components/CategoryBars";
 import { marketActivity, marketIndices } from "@/lib/demo-data";
 import {
@@ -158,9 +159,9 @@ export function DashboardClient() {
       </section>
 
       <section className="mb-7 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <WrappedPrideCard items={items} />
         <PrideCard icon={Crown} label="Crown Jewel" title={metrics.topItem.name} value={compactCurrency.format(getCurrentValue(metrics.topItem))} detail={`${percent.format(getItemReturn(metrics.topItem).percentage)} since you paid ${compactCurrency.format(metrics.topItem.costBasis)}`} featured />
         <PrideCard icon={Flame} label="Hottest Category" title={metrics.hottestCategory ? metrics.hottestCategory.category.replace("_", " ") : "None"} value={metrics.hottestCategory ? percent.format(metrics.hottestCategory.returnPercentage) : "0%"} detail="Best performing category right now" />
-        <PrideCard icon={Gem} label="Rarest Piece" title={metrics.rarestPiece.name} value={metrics.rarestPiece.editionTotal ? `#${metrics.rarestPiece.editionNumber}/${metrics.rarestPiece.editionTotal}` : "Unique"} detail="Scarcity signal in your vault" />
         <PrideCard icon={Trophy} label="Acquisition Streak" title={`${metrics.acquisitionStreak} month${metrics.acquisitionStreak === 1 ? "" : "s"}`} value={metrics.acquisitionStreak ? "Active" : "Ready"} detail={metrics.acquisitionStreak ? "Consecutive months adding pieces" : "Add another asset this month to start a streak"} />
       </section>
 

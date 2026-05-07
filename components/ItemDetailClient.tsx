@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Download, FileText, FileUp, ImagePlus, LayoutDashboard, Pencil, Save, Share2, Star, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, FileText, FileUp, ImagePlus, LayoutDashboard, Pencil, Save, Star, Trash2 } from "lucide-react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AssetImage } from "@/components/AssetImage";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/Badge";
-import { OpenToOffersControl } from "@/components/OpenToOffersControl";
+import { ShareCardTrigger } from "@/components/ShareCards";
 import {
   categoryLabel,
   currency,
@@ -191,10 +191,6 @@ export function ItemDetailClient({ id }: { id: string }) {
             <p className="mt-3 text-xs text-vault-muted">{item.currentValueSource} · updated {new Date(item.currentValueUpdatedAt).toLocaleString()}</p>
           </div>
 
-          <div className="mt-4">
-            <OpenToOffersControl item={item} />
-          </div>
-
           <div className="mt-6 rounded-md border border-vault-red/25 bg-vault-red/5 p-4">
             <p className="section-label">Remove Asset</p>
             <p className="mt-2 text-xs leading-5 text-vault-muted">Deletes this item from your collection view and removes its attached portfolio record.</p>
@@ -258,10 +254,7 @@ export function ItemDetailClient({ id }: { id: string }) {
             <p className="data mt-2 text-vault-gold">{currency.format(item.costBasis)} to {currency.format(getCurrentValue(item))}</p>
             <p className="data mt-1 text-vault-green">{percent.format(itemReturn.percentage)} return</p>
           </div>
-          <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-vault-border px-4 py-3 text-vault-text transition hover:border-vault-bright">
-            <Share2 size={16} />
-            Download PNG Stub
-          </button>
+          <ShareCardTrigger mode="item" item={item} items={items} className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-vault-gold/35 bg-vault-gold/10 px-4 py-3 text-vault-gold transition hover:border-vault-gold" />
           <p className="mt-2 text-xs text-vault-faint">{shareText}</p>
         </div>
       </section>
