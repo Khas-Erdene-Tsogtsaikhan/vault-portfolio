@@ -14,8 +14,9 @@ async function main() {
 
   const sources = getSources();
   if (!sources.length) {
-    throw new Error("Set PRICECHARTING_CSV_URLS, PC_CSV_URL_1..PC_CSV_URL_6, or pass CSV file paths as CLI args.");
+    throw new Error("Set PRICECHARTING_CSV_URL, PRICECHARTING_CSV_URLS, PC_CSV_URL_1..PC_CSV_URL_12, or pass CSV file paths as CLI args.");
   }
+  console.log(`Found ${sources.length} CSV source${sources.length === 1 ? "" : "s"} to index.`);
 
   const client = new Meilisearch({ host, apiKey });
   const index = client.index<PriceChartingSearchDocument>(pricechartingIndexName);
@@ -31,6 +32,9 @@ async function main() {
 
   const stats = await index.getStats();
   console.log(`Seed complete. ${stats.numberOfDocuments.toLocaleString()} documents searchable. ${total.toLocaleString()} rows processed this run.`);
+  if (total === 0 || stats.numberOfDocuments === 0) {
+    throw new Error("Meilisearch catalog sync produced 0 searchable products. Check that your GitHub CSV URL secrets point to real PriceCharting CSV files, not an HTML page, expired URL, or empty file.");
+  }
 }
 
 async function configureIndex(client: Meilisearch) {
@@ -65,11 +69,22 @@ async function ingestSource({
   input.pipe(parser);
 
   let count = 0;
+  let seenRows = 0;
+  let skippedRows = 0;
+  let firstRowKeys: string[] = [];
   let batch: PriceChartingSearchDocument[] = [];
 
   for await (const row of parser as AsyncIterable<Record<string, string>>) {
+    seenRows += 1;
+    if (!firstRowKeys.length) {
+      firstRowKeys = Object.keys(row);
+      console.log(`  ${source.label}: detected CSV columns: ${firstRowKeys.slice(0, 16).join(", ")}${firstRowKeys.length > 16 ? ", ..." : ""}`);
+    }
     const document = csvRowToSearchDocument(row, source.category);
-    if (!document) continue;
+    if (!document) {
+      skippedRows += 1;
+      continue;
+    }
     batch.push(document);
     if (batch.length >= batchSize) {
       count += await flushBatch(client, index, batch);
@@ -79,6 +94,12 @@ async function ingestSource({
   }
 
   if (batch.length) count += await flushBatch(client, index, batch);
+  if (count === 0) {
+    throw new Error(`${source.label} produced 0 valid PriceCharting products from ${seenRows.toLocaleString()} CSV row${seenRows === 1 ? "" : "s"}. First columns: ${firstRowKeys.join(", ") || "none"}. This usually means the URL did not download the expected PriceCharting CSV.`);
+  }
+  if (skippedRows) {
+    console.log(`  ${source.label}: skipped ${skippedRows.toLocaleString()} row${skippedRows === 1 ? "" : "s"} without product id/name.`);
+  }
   return count;
 }
 
@@ -92,6 +113,9 @@ async function openSource(source: CsvSource) {
   if (source.url) {
     const response = await fetch(source.url);
     if (!response.ok || !response.body) throw new Error(`Could not download ${source.label}: ${response.status}`);
+    const contentType = response.headers.get("content-type") ?? "unknown";
+    const contentLength = response.headers.get("content-length") ?? "unknown";
+    console.log(`  ${source.label}: download ok (${contentType}, ${contentLength} bytes)`);
     return Readable.fromWeb(response.body as any);
   }
   return createReadStream(source.path as string);
@@ -109,6 +133,7 @@ function getSources(): CsvSource[] {
   if (cli.length) return cli;
 
   const envUrls = [
+    ...splitUrls(process.env.PRICECHARTING_CSV_URL),
     ...splitUrls(process.env.PRICECHARTING_CSV_URLS),
     ...Array.from({ length: 12 }, (_, index) => process.env[`PC_CSV_URL_${index + 1}`]).flatMap(splitUrls)
   ];
@@ -127,7 +152,10 @@ function getSources(): CsvSource[] {
 }
 
 function splitUrls(value: string | undefined | null) {
-  return (value ?? "").split(",").map((url) => url.trim()).filter(Boolean);
+  return (value ?? "")
+    .split(/[\n,]+/)
+    .map((url) => url.trim().replace(/^["']|["']$/g, ""))
+    .filter(Boolean);
 }
 
 function inferCategory(value: string) {
