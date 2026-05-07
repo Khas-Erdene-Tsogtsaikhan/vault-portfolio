@@ -1,4 +1,6 @@
 import type { Category, MarketSearchResult, VaultItem } from "@/lib/types";
+import { getMeiliAdminClient, getMeiliSearchClient, pricechartingIndexName } from "@/lib/meilisearch";
+import type { PriceChartingSearchDocument } from "@/lib/pricecharting-documents";
 import { supabaseAdmin } from "@/lib/supabase-server";
 
 export interface PriceChartingProduct {
@@ -94,6 +96,12 @@ export async function getPriceChartingProductResult(productId: string, query = "
 
 export async function refreshPriceChartingProduct(item: Pick<VaultItem, "id" | "pricechartingId" | "pricechartingPriceField" | "currentValueUser">) {
   if (!item.pricechartingId) return null;
+  const catalogResult = await getCatalogProductResult(item.pricechartingId, item.pricechartingPriceField);
+  if (catalogResult) {
+    await writeCache(productCacheKey(item.pricechartingId), { results: [catalogResult], valuation: resultToValuation(catalogResult), source: "pricecharting_catalog" });
+    return catalogResult;
+  }
+
   const token = process.env.PRICECHARTING_API_TOKEN;
   if (!token) return null;
   const product = await enqueuePriceChartingCall(() => fetchProduct(token, { id: item.pricechartingId as string }));
@@ -101,6 +109,43 @@ export async function refreshPriceChartingProduct(item: Pick<VaultItem, "id" | "
   if (!result) return null;
   await writeCache(productCacheKey(item.pricechartingId), { results: [result], valuation: resultToValuation(result), source: "pricecharting_api" });
   return result;
+}
+
+async function getCatalogProductResult(productId: string, preferredField?: string): Promise<MarketSearchResult | null> {
+  const meili = getMeiliAdminClient() ?? getMeiliSearchClient();
+  if (!meili) return null;
+
+  try {
+    const document = await meili.index(pricechartingIndexName).getDocument<PriceChartingSearchDocument>(`pc_${productId}`, {
+      fields: [
+        "id",
+        "pricecharting_id",
+        "product_name",
+        "console_name",
+        "category",
+        "sales_volume",
+        "image_url",
+        "price_fields",
+        "last_synced_at"
+      ]
+    });
+    const result = catalogDocumentToResult(document, preferredField);
+    return result ? { ...result, source: "PriceCharting Guide Value" } : null;
+  } catch {
+    return null;
+  }
+}
+
+function catalogDocumentToResult(document: PriceChartingSearchDocument, preferredField?: string): MarketSearchResult | null {
+  const product = {
+    id: document.pricecharting_id,
+    "product-name": document.product_name,
+    "console-name": document.console_name,
+    "sales-volume": document.sales_volume,
+    "image-url": document.image_url ?? undefined,
+    ...(document.price_fields ?? {})
+  } as PriceChartingProduct;
+  return productToResult(product, document.product_name, preferredField);
 }
 
 function productCacheKey(productId: string) {

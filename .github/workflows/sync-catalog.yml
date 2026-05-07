@@ -1,8 +1,8 @@
-name: Weekly Catalog Sync
+name: Daily Catalog Price Sync
 
 on:
   schedule:
-    - cron: "0 2 * * 0"
+    - cron: "0 3 * * *"
   workflow_dispatch:
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
 
       - run: npm ci
 
-      - name: Sync PriceCharting CSVs to Meilisearch
+      - name: Sync PriceCharting CSV prices to Meilisearch
         env:
           MEILI_HOST: ${{ secrets.MEILI_HOST }}
           MEILI_MASTER_KEY: ${{ secrets.MEILI_MASTER_KEY }}

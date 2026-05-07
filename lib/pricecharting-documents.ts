@@ -69,13 +69,13 @@ export function csvRowToSearchDocument(row: Record<string, string>, fallbackCate
   };
 }
 
-export function searchDocumentToResult(document: PriceChartingSearchDocument, query = ""): MarketSearchResult | null {
+export function searchDocumentToResult(document: PriceChartingSearchDocument, query = "", preferredField?: string): MarketSearchResult | null {
   const options = priceFields
     .map((fieldName) => ({ field: fieldName, label: priceFieldLabel(fieldName, document), value: centsToDollars(document.price_fields[fieldName]) }))
     .filter((option) => option.value > 0);
   if (!options.length) return null;
 
-  const option = chooseOption(options, query);
+  const option = chooseOption(options, query, preferredField);
   const values = options.map((item) => item.value);
   const salesVolume = Number(document.sales_volume ?? 0);
 
@@ -158,7 +158,8 @@ function collectPriceFields(row: Record<string, string>) {
   return fields;
 }
 
-function chooseOption(options: Array<{ field: string; label: string; value: number }>, query: string) {
+function chooseOption(options: Array<{ field: string; label: string; value: number }>, query: string, preferredField?: string) {
+  if (preferredField) return options.find((option) => option.field === preferredField) ?? options[0];
   const normalized = query.toLowerCase();
   if (/bgs\s*10/.test(normalized)) return options.find((option) => option.field === "bgs-10-price") ?? options[0];
   if (/cgc\s*10/.test(normalized)) return options.find((option) => option.field === "condition-17-price") ?? options[0];

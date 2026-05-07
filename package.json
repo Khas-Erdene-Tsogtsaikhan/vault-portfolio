@@ -11,9 +11,13 @@
     "start": "next start -H 0.0.0.0",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "sync:catalog": "tsx scripts/seed-meilisearch.ts",
+    "seed:catalog": "tsx scripts/seed-meilisearch.ts",
+    "sync:catalog": "tsx scripts/sync-meilisearch-prices.ts",
     "enrich:images": "tsx scripts/enrich-meilisearch-images.ts",
-    "refresh:daily": "tsx scripts/run-daily-refresh.ts"
+    "refresh:daily": "tsx scripts/run-daily-refresh.ts",
+    "email:daily": "tsx scripts/send-daily-emails.ts",
+    "email:weekly": "tsx scripts/send-weekly-digest.ts",
+    "email:test": "tsx scripts/send-daily-emails.ts --dry-run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",
@@ -26,6 +30,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "recharts": "^2.15.0",
+    "resend": "^6.12.3",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
