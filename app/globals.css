@@ -128,6 +128,43 @@ textarea {
     pointer-events: none;
   }
 
+  .vault-hero-animating-up {
+    background:
+      radial-gradient(ellipse at center top, rgba(80, 201, 138, 0.06) 0%, transparent 70%),
+      linear-gradient(135deg, #0d0a05, #110e06 40%, #0a0a10);
+  }
+
+  .vault-hero-animating-down {
+    background:
+      radial-gradient(ellipse at center top, rgba(224, 96, 96, 0.04) 0%, transparent 70%),
+      linear-gradient(135deg, #0d0a05, #110e06 40%, #0a0a10);
+  }
+
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--green);
+    animation: vaultPulse 2s infinite;
+    box-shadow: 0 0 0 4px rgba(80, 201, 138, 0.08);
+  }
+
+  .live-dot-solid {
+    animation: none;
+  }
+
+  .gain-pill {
+    position: absolute;
+    left: 0;
+    top: -18px;
+    color: var(--green);
+    font-family: "DM Mono", monospace;
+    font-size: 16px;
+    pointer-events: none;
+    text-shadow: 0 0 18px rgba(80, 201, 138, 0.25);
+  }
+
   .hero-label {
     @apply flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-vault-gold;
   }
@@ -149,5 +186,16 @@ textarea {
 
   .vault-pill-active {
     @apply border-vault-gold bg-vault-gold/10 text-vault-gold;
+  }
+}
+
+@keyframes vaultPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.8);
   }
 }

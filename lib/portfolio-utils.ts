@@ -84,7 +84,7 @@ export function categoryLabel(category: Category) {
 }
 
 export function getCurrentValue(item: VaultItem) {
-  return item.currentValueUser;
+  return item.currentValueMarket ?? item.currentValueUser;
 }
 
 export function getPrimaryPhoto(photos: VaultPhoto[]) {
@@ -202,13 +202,21 @@ export function getCategoryBreakdown(items: VaultItem[]) {
 
 export function getPortfolioHistory(items: VaultItem[]) {
   if (!items.length) {
-    return ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"].map((month) => ({ month, value: 0, sp500: 0 }));
+    return ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"].map((month, index) => ({ date: `2026-${String(Math.max(1, index + 1)).padStart(2, "0")}-01`, month, value: 0, sp500: 0 }));
   }
-  const dates = Array.from(new Set(items.flatMap((item) => item.priceHistory.map((point) => point.recordedAt)))).sort();
+  const now = new Date().toISOString();
+  const dates = Array.from(new Set([
+    ...items.flatMap((item) => item.priceHistory.map((point) => point.recordedAt)),
+    ...items.map((item) => item.currentValueUpdatedAt ?? item.updatedAt),
+    now
+  ])).sort();
+  const costBasis = items.reduce((sum, item) => sum + item.costBasis, 0);
+
   return dates.map((date, index) => ({
-    month: new Date(date).toLocaleDateString("en-US", { month: "short" }),
-    value: items.reduce((sum, item) => sum + (item.priceHistory[index]?.value ?? item.costBasis), 0),
-    sp500: items.reduce((sum, item) => sum + item.costBasis, 0) * (1 + index * 0.011)
+    date,
+    month: new Date(date).toLocaleDateString("en-US", { month: "short", day: dates.length > 12 ? undefined : "numeric" }),
+    value: items.reduce((sum, item) => sum + getItemValueAt(item, date), 0),
+    sp500: costBasis * (1 + index * 0.011)
   }));
 }
 
@@ -281,6 +289,13 @@ function rarityScore(item: VaultItem) {
 
 function average(values: number[]) {
   return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : 0;
+}
+
+function getItemValueAt(item: VaultItem, date: string) {
+  const sorted = [...item.priceHistory].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+  const point = [...sorted].reverse().find((candidate) => candidate.recordedAt <= date);
+  if (item.currentValueUpdatedAt <= date) return getCurrentValue(item);
+  return point?.value ?? item.costBasis;
 }
 
 function trimDecimal(value: number) {

@@ -13,6 +13,7 @@ import {
   categoryLabel,
   currency,
   getCompletenessScore,
+  getCurrentValue,
   getItemDailyDelta,
   getItemHighLow,
   getItemReturn,
@@ -35,7 +36,7 @@ export function ItemDetailClient({ id }: { id: string }) {
   const setPrimaryPhoto = useVaultStore((state) => state.setPrimaryPhoto);
   const item = items.find((candidate) => candidate.id === id);
   const [activePhoto, setActivePhoto] = useState(0);
-  const [estimate, setEstimate] = useState(item?.currentValueUser.toString() ?? "");
+  const [estimate, setEstimate] = useState(item ? getCurrentValue(item).toString() : "");
   const [editForm, setEditForm] = useState({
     name: item?.name ?? "",
     brand: item?.brand ?? "",
@@ -49,7 +50,7 @@ export function ItemDetailClient({ id }: { id: string }) {
     story: item?.story ?? ""
   });
   const [proofToast, setProofToast] = useState("");
-  const shareText = useMemo(() => item ? `${item.name}: ${currency.format(item.costBasis)} to ${currency.format(item.currentValueUser)} (${percent.format(getItemReturn(item).percentage)})` : "", [item]);
+  const shareText = useMemo(() => item ? `${item.name}: ${currency.format(item.costBasis)} to ${currency.format(getCurrentValue(item))} (${percent.format(getItemReturn(item).percentage)})` : "", [item]);
 
   if (!item) {
     return (
@@ -73,6 +74,11 @@ export function ItemDetailClient({ id }: { id: string }) {
     value: point.value,
     costBasis: item.costBasis
   }));
+  chartData.push({
+    date: new Date(item.currentValueUpdatedAt).toLocaleDateString("en-US", { month: "short" }),
+    value: getCurrentValue(item),
+    costBasis: item.costBasis
+  });
   const comps = buildMarketComps(item);
 
   return (
@@ -149,7 +155,7 @@ export function ItemDetailClient({ id }: { id: string }) {
 
           <div className="mt-8 border-y border-vault-border py-6">
             <p className="section-label">Current Estimated Value</p>
-            <p className="data mt-2 text-5xl text-vault-text">{currency.format(item.currentValueUser)}</p>
+            <p className="data mt-2 text-5xl text-vault-text">{currency.format(getCurrentValue(item))}</p>
             <p className={`data mt-2 text-sm ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
               {daily.amount >= 0 ? "▲" : "▼"} {preciseCurrency.format(daily.amount)} ({percent.format(daily.percentage)}) Today
             </p>
@@ -161,7 +167,7 @@ export function ItemDetailClient({ id }: { id: string }) {
             <Stat label="52-Week High" value={currency.format(highLow.high)} />
             <Stat label="52-Week Low" value={currency.format(highLow.low)} />
             <Stat label="Market Liquidity" value={getLiquidity(item)} compact />
-            <Stat label="Last Sale" value={`${currency.format(item.lastSalePrice ?? item.currentValueUser)}${item.lastSaleDate ? ` · ${new Date(item.lastSaleDate).toLocaleDateString()}` : ""}`} compact />
+            <Stat label="Last Sale" value={`${currency.format(item.lastSalePrice ?? getCurrentValue(item))}${item.lastSaleDate ? ` · ${new Date(item.lastSaleDate).toLocaleDateString()}` : ""}`} compact />
           </div>
 
           <MarketValuationPanel item={item} />
@@ -233,7 +239,7 @@ export function ItemDetailClient({ id }: { id: string }) {
               {primaryPhoto?.url ? <AssetImage src={primaryPhoto.url} alt="" sizes="300px" /> : null}
             </div>
             <p className="mt-4 font-serif text-3xl font-light text-vault-text">{item.name}</p>
-            <p className="data mt-2 text-vault-gold">{currency.format(item.costBasis)} to {currency.format(item.currentValueUser)}</p>
+            <p className="data mt-2 text-vault-gold">{currency.format(item.costBasis)} to {currency.format(getCurrentValue(item))}</p>
             <p className="data mt-1 text-vault-green">{percent.format(itemReturn.percentage)} return</p>
           </div>
           <button className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-vault-border px-4 py-3 text-vault-text transition hover:border-vault-bright">
@@ -497,7 +503,7 @@ function buildMarketComps(item: VaultItem): MarketComp[] {
     id: `${item.id}-demo-comp-${index + 1}`,
     source: index % 2 === 0 ? "Demo sold comp" : item.currentValueSource,
     title: `${item.condition} comparable sale ${index + 1}`,
-    price: Math.round((item.lastSalePrice ?? item.currentValueUser) * (1 - index * 0.012)),
+    price: Math.round((item.lastSalePrice ?? getCurrentValue(item)) * (1 - index * 0.012)),
     soldAt: new Date(new Date(lastSaleDate).getTime() - index * 7 * 24 * 60 * 60 * 1000).toISOString(),
     confidence: index < 2 ? "High" : "Medium"
   }));

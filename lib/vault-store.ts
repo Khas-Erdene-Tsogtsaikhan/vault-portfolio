@@ -196,7 +196,7 @@ export const useVaultStore = create<VaultState>()(
           marketComps: []
         };
         const items = [item, ...get().items];
-        const totalValue = items.reduce((sum, vaultItem) => sum + vaultItem.currentValueUser, 0);
+        const totalValue = items.reduce((sum, vaultItem) => sum + (vaultItem.currentValueMarket ?? vaultItem.currentValueUser), 0);
         set((state) => ({
           items,
           lastAddedItemId: item.id,

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Barcode, CheckCircle2, FileUp, Search, Sparkles, Trash2 } from "lucide-react";
+import { Barcode, CheckCircle2, FileUp, Search, Sparkles, Trash2, X } from "lucide-react";
 import { MarketLookup } from "@/components/MarketLookup";
 import { categories, documentTypeLabels, documentTypes, type Category, type VaultDocument } from "@/lib/types";
 import type { MarketSearchResult } from "@/lib/types";
@@ -30,6 +30,7 @@ export function AddItemWizard() {
   const [addCelebration, setAddCelebration] = useState<{ count: number; value: number; gain: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [picked, setPicked] = useState<PickedResult[]>([]);
+  const [conditionModal, setConditionModal] = useState<MarketSearchResult | null>(null);
   const [manualPhotos, setManualPhotos] = useState<File[]>([]);
   const [manualDocuments, setManualDocuments] = useState<Array<{ file: File; type: VaultDocument["type"] }>>([]);
   const [form, setForm] = useState({
@@ -53,13 +54,22 @@ export function AddItemWizard() {
       setToast("VAULT could not load a PriceCharting guide value for that result yet. Try another match or use Manual.");
       return;
     }
+    if (picked.some((item) => item.result.id === result.id)) {
+      removePicked(result.id);
+      setToast(`${result.title} removed from your selected positions.`);
+      return;
+    }
+    setConditionModal(result);
+  }
+
+  function addModalResult(result: MarketSearchResult, costBasis: string) {
     setPicked((current) => {
       if (current.some((item) => item.result.id === result.id)) return current.filter((item) => item.result.id !== result.id);
       return [
         ...current,
         {
           result,
-          costBasis: "",
+          costBasis,
           acquiredDate: new Date().toISOString().slice(0, 10),
           condition: result.condition ?? "Excellent",
           photoFiles: [],
@@ -67,7 +77,8 @@ export function AddItemWizard() {
         }
       ];
     });
-    setToast(`${result.title} loaded from PriceCharting. Add cost basis, then place it in your Vault.`);
+    setConditionModal(null);
+    setToast(`${result.title} is staged with ${currency.format(result.price)} guide value. Confirm to place it in your Vault.`);
   }
 
   function removePicked(id: string) {
@@ -247,8 +258,146 @@ export function AddItemWizard() {
           </motion.div>
         ) : null}
         {toast ? <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed bottom-6 right-6 z-50 max-w-sm rounded-lg border border-vault-gold/35 bg-vault-card p-4 text-sm leading-6 text-vault-text">{toast}</motion.div> : null}
+        {conditionModal ? (
+          <ConditionPickerModal
+            product={conditionModal}
+            onClose={() => setConditionModal(null)}
+            onAdd={addModalResult}
+          />
+        ) : null}
       </AnimatePresence>
     </div>
+  );
+}
+
+function ConditionPickerModal({ product, onAdd, onClose }: { product: MarketSearchResult; onAdd: (result: MarketSearchResult, costBasis: string) => void; onClose: () => void }) {
+  const conditions = [...(product.priceOptions ?? [{ field: product.pricechartingPriceField ?? "guide", label: product.condition ?? "Guide Value", value: product.price }])]
+    .filter((condition) => condition.value > 0)
+    .sort((a, b) => b.value - a.value);
+  const [selectedField, setSelectedField] = useState(conditions[0]?.field ?? "");
+  const [costBasis, setCostBasis] = useState("");
+  const selected = conditions.find((condition) => condition.field === selectedField) ?? conditions[0];
+  const guideValue = selected?.value ?? 0;
+  const paid = Number(costBasis || 0);
+  const gain = guideValue - paid;
+  const gainPct = paid > 0 ? gain / paid : null;
+  const positive = gain >= 0;
+
+  function add() {
+    if (!selected) return;
+    onAdd({
+      ...product,
+      id: `pricecharting-${product.pricechartingId ?? product.id}-${selected.field}`,
+      price: selected.value,
+      condition: selected.label,
+      pricechartingPriceField: selected.field,
+      lastSalePrice: selected.value
+    }, costBasis);
+  }
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-vault-black/88 p-4 backdrop-blur-xl"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+    >
+      <motion.div
+        className="w-full max-w-2xl overflow-hidden rounded-[12px] border border-vault-gold-dim bg-vault-card"
+        initial={{ scale: 0.94, y: 24 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.98, y: 12 }}
+        transition={{ type: "spring", stiffness: 190, damping: 20 }}
+      >
+        <div className="flex items-start justify-between border-b border-vault-border p-5">
+          <div className="flex gap-4">
+            <div className="h-[120px] w-[120px] overflow-hidden rounded-[10px] border border-vault-border bg-vault-black">
+              {product.imageUrl ? <TrayImage src={product.imageUrl} alt="" /> : <Sparkles className="m-10 text-vault-gold" size={36} />}
+            </div>
+            <div className="min-w-0 pt-1">
+              <p className="section-label">Position Confirmation</p>
+              <h2 className="mt-2 font-serif text-4xl font-light leading-none text-vault-text">{product.title}</h2>
+              <p className="mt-3 text-sm text-vault-muted">{product.pricechartingConsole ?? "PriceCharting"} · {categoryLabel(product.category)}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="rounded border border-vault-border p-2 text-vault-muted transition hover:border-vault-bright hover:text-vault-text" aria-label="Close condition picker">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="grid gap-5 p-5">
+          <div>
+            <p className="section-label">Select Condition</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {conditions.map((condition) => (
+                <button
+                  key={condition.field}
+                  onClick={() => setSelectedField(condition.field)}
+                  className={`rounded-[10px] border p-4 text-left transition hover:-translate-y-0.5 ${
+                    selectedField === condition.field ? "border-vault-gold bg-vault-gold/10" : "border-vault-border bg-vault-black hover:border-vault-bright"
+                  }`}
+                >
+                  <span className="block text-sm font-semibold text-vault-text">{condition.label}</span>
+                  <span className="data mt-2 block text-2xl text-vault-gold">{currency.format(condition.value)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label>
+            <span className="section-label mb-2 block">What did you pay?</span>
+            <div className="relative">
+              <span className="data absolute left-3 top-1/2 -translate-y-1/2 text-vault-faint">$</span>
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                value={costBasis}
+                onChange={(event) => setCostBasis(event.target.value)}
+                className="form-input data pl-8 text-lg"
+                placeholder="0.00"
+              />
+            </div>
+          </label>
+
+          <AnimatePresence>
+            {costBasis && selected ? (
+              <motion.div
+                className={`rounded-[12px] border p-5 ${positive ? "border-vault-green/30 bg-vault-green/10" : "border-vault-red/30 bg-vault-red/10"}`}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+              >
+                <div className="flex justify-between gap-4 text-sm">
+                  <span className="text-vault-muted">Guide Value</span>
+                  <span className="data text-vault-text">{currency.format(guideValue)}</span>
+                </div>
+                <div className="mt-2 flex justify-between gap-4 text-sm">
+                  <span className="text-vault-muted">You Paid</span>
+                  <span className="data text-vault-text">{currency.format(paid)}</span>
+                </div>
+                <div className="mt-4 border-t border-vault-border pt-4">
+                  <div className="flex justify-between gap-4">
+                    <span className="font-semibold text-vault-text">Unrealized Gain</span>
+                    <span className={`data text-xl ${positive ? "text-vault-green" : "text-vault-red"}`}>
+                      {positive ? "+" : "-"}{currency.format(Math.abs(gain))}{gainPct !== null ? ` (${positive ? "+" : "-"}${Math.abs(gainPct * 100).toFixed(1)}%)` : ""}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          <button
+            disabled={!selected}
+            onClick={add}
+            className="rounded-md bg-vault-gold px-5 py-4 text-sm font-semibold text-vault-black transition hover:bg-vault-gold-light disabled:opacity-50"
+          >
+            Add to Vault
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
