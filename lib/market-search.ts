@@ -1,130 +1,71 @@
-import type { Category, MarketSearchResult } from "@/lib/types";
+import { getMeiliSearchClient, pricechartingIndexName } from "@/lib/meilisearch";
+import { searchDocumentToResult, type PriceChartingSearchDocument } from "@/lib/pricecharting-documents";
+import { searchPriceCharting, type CachedPricePayload } from "@/lib/pricecharting";
 
-interface MockSoldListing {
-  itemId: string;
-  title: string;
-  price: number;
-  soldAt: string;
-  imageUrl?: string;
-  url?: string;
-  condition?: string;
+export async function searchMarketItems(query: string, limit = 50, category?: string): Promise<CachedPricePayload & { total?: number }> {
+  const meili = getMeiliSearchClient();
+  if (meili && query.trim().length >= 2) {
+    try {
+      const index = meili.index(pricechartingIndexName);
+      const response = await index.search<PriceChartingSearchDocument>(query, {
+        limit: Math.max(1, Math.min(limit, 100)),
+        filter: category && category !== "all" ? `category = "${escapeFilter(category)}"` : undefined,
+        sort: ["sales_volume:desc"],
+        attributesToRetrieve: [
+          "id",
+          "pricecharting_id",
+          "product_name",
+          "console_name",
+          "category",
+          "brand",
+          "loose_price",
+          "cib_price",
+          "new_price",
+          "graded_price",
+          "psa_10_price",
+          "box_only_price",
+          "manual_only_price",
+          "sales_volume",
+          "has_loose_price",
+          "has_graded_price",
+          "has_new_price",
+          "image_url",
+          "price_fields",
+          "last_synced_at"
+        ]
+      });
+      const results = response.hits
+        .map((hit: PriceChartingSearchDocument) => searchDocumentToResult(hit, query))
+        .filter((result): result is NonNullable<typeof result> => Boolean(result));
+      if (results.length) {
+        return {
+          results,
+          valuation: resultToValuation(results[0]),
+          source: "meilisearch_pricecharting_catalog",
+          total: response.estimatedTotalHits
+        };
+      }
+    } catch {
+      // Fall through to the live PriceCharting API. Search should fail soft, not block adding.
+    }
+  }
+
+  return searchPriceCharting(query, Math.min(limit, 20));
 }
 
-export function inferCategory(query: string): Category {
-  const value = query.toLowerCase();
-  if (/(jordan|nike|yeezy|dunk|sneaker|size)/.test(value)) return "sneakers";
-  if (/(charizard|pokemon|psa|bgs|tcg|card|mtg|magic)/.test(value)) return "trading_cards";
-  if (/(rolex|patek|omega|watch|submariner|nautilus|speedmaster)/.test(value)) return "watches";
-  if (/(wine|chateau|bordeaux|burgundy|margaux)/.test(value)) return "wine";
-  if (/(art|painting|canvas|artist|print)/.test(value)) return "art";
-  return "other";
-}
-
-export function mockMarketSearch(query: string): MarketSearchResult[] {
-  const category = inferCategory(query);
-  const normalized = query.trim() || "Collectible Asset";
-  const presets: Record<Category, Array<{ title: string; price: number; condition: string; soldCount: number }>> = {
-    watches: [
-      { title: `${normalized} full set excellent condition`, price: 14800, condition: "Excellent", soldCount: 21 },
-      { title: `${normalized} box and papers`, price: 15450, condition: "Near Mint", soldCount: 14 },
-      { title: `${normalized} recently serviced`, price: 13900, condition: "Very Good", soldCount: 8 }
-    ],
-    sneakers: [
-      { title: `${normalized} DS Size 10`, price: 340, condition: "Deadstock", soldCount: 63 },
-      { title: `${normalized} authenticated Size 10.5`, price: 318, condition: "New", soldCount: 42 },
-      { title: `${normalized} lightly worn`, price: 245, condition: "Used", soldCount: 18 }
-    ],
-    trading_cards: [
-      { title: `${normalized} PSA 10`, price: 8200, condition: "PSA 10", soldCount: 47 },
-      { title: `${normalized} PSA 9`, price: 4150, condition: "PSA 9", soldCount: 39 },
-      { title: `${normalized} raw near mint`, price: 880, condition: "Near Mint", soldCount: 52 }
-    ],
-    wine: [
-      { title: `${normalized} professionally stored bottle`, price: 4100, condition: "Cellared", soldCount: 9 },
-      { title: `${normalized} original wooden case`, price: 24600, condition: "OWC", soldCount: 5 },
-      { title: `${normalized} single owner provenance`, price: 3950, condition: "Excellent fill", soldCount: 7 }
-    ],
-    art: [
-      { title: `${normalized} signed original`, price: 38500, condition: "Excellent", soldCount: 3 },
-      { title: `${normalized} gallery provenance`, price: 37200, condition: "Excellent", soldCount: 2 },
-      { title: `${normalized} study on paper`, price: 9800, condition: "Good", soldCount: 4 }
-    ],
-    spirits: [],
-    jewelry: [],
-    books: [],
-    coins: [],
-    video_games: [
-      { title: `${normalized} loose`, price: 172, condition: "Loose", soldCount: 118 },
-      { title: `${normalized} complete in box`, price: 430, condition: "CIB", soldCount: 84 },
-      { title: `${normalized} new sealed`, price: 530, condition: "New", soldCount: 31 }
-    ],
-    comics: [
-      { title: `${normalized} CGC 9.8`, price: 920, condition: "CGC 9.8", soldCount: 44 },
-      { title: `${normalized} raw high grade`, price: 220, condition: "Ungraded", soldCount: 67 }
-    ],
-    funko: [
-      { title: `${normalized} vaulted figure`, price: 180, condition: "New", soldCount: 52 }
-    ],
-    lego: [
-      { title: `${normalized} sealed set`, price: 310, condition: "New", soldCount: 72 }
-    ],
-    vintage_clothing: [],
-    cars: [],
-    guitars: [],
-    furniture: [],
-    other: [
-      { title: `${normalized} comparable sale`, price: 2400, condition: "Excellent", soldCount: 12 },
-      { title: `${normalized} verified provenance`, price: 2850, condition: "Near Mint", soldCount: 7 },
-      { title: `${normalized} recent market comp`, price: 2100, condition: "Very Good", soldCount: 5 }
-    ]
-  };
-
-  const rows = presets[category].length ? presets[category] : presets.other;
-  return rows.map((row, index) => ({
-    id: `mock-${category}-${index}-${normalized.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-    title: row.title,
-    category,
-    price: row.price,
-    source: "VAULT market model",
-    confidence: row.soldCount > 20 ? "High" : row.soldCount > 5 ? "Medium" : "Low",
-    soldCount: row.soldCount,
-    condition: row.condition,
-    priceLow: Math.round(row.price * 0.88),
-    priceHigh: Math.round(row.price * 1.12),
-    avgPrice: row.price,
-    lastSalePrice: row.price,
-    lastSaleDate: new Date(Date.now() - (index + 2) * 24 * 60 * 60 * 1000).toISOString(),
-    priceConfidence: row.soldCount > 20 ? "HIGH" : row.soldCount > 5 ? "MEDIUM" : "LOW",
-    marketStatus: "mock"
-  }));
-}
-
-export function mockSoldListings(query: string, category: Category): MockSoldListing[] {
-  const base = mockMarketSearch(query).find((result) => result.category === category) ?? mockMarketSearch(query)[0];
-  const prices = Array.from({ length: Math.min(20, Math.max(5, base.soldCount ?? 8)) }, (_, index) => {
-    const wave = Math.sin(index * 1.7) * 0.06;
-    const drift = (index - 8) * 0.004;
-    return Math.round(base.price * (1 + wave + drift));
-  });
-  return prices.map((price, index) => ({
-    itemId: `mock-sold-${index}-${query.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-    title: `${base.title} sold comp ${index + 1}`,
-    price,
-    soldAt: new Date(Date.now() - index * 5 * 24 * 60 * 60 * 1000).toISOString(),
-    imageUrl: base.imageUrl,
-    condition: base.condition,
-    url: base.url
-  }));
-}
-
-export function summarizeMarketValue(results: MarketSearchResult[]) {
-  if (!results.length) return { estimate: 0, confidence: "Low" as const, sales: 0 };
-  const prices = results.map((result) => result.price).sort((a, b) => a - b);
-  const estimate = prices[Math.floor(prices.length / 2)];
-  const sales = results.reduce((sum, result) => sum + (result.soldCount ?? 0), 0);
+function resultToValuation(result: NonNullable<ReturnType<typeof searchDocumentToResult>>) {
   return {
-    estimate,
-    confidence: sales > 30 ? "High" as const : sales > 8 ? "Medium" as const : "Low" as const,
-    sales
+    marketValue: result.price,
+    priceLow: result.priceLow ?? result.price,
+    priceHigh: result.priceHigh ?? result.price,
+    avgPrice: result.avgPrice ?? result.price,
+    sampleSize: result.soldCount ?? 1,
+    lastSalePrice: result.lastSalePrice ?? result.price,
+    lastSaleDate: result.lastSaleDate ?? null,
+    confidence: result.priceConfidence ?? "LOW"
   };
+}
+
+function escapeFilter(value: string) {
+  return value.replace(/"/g, '\\"');
 }

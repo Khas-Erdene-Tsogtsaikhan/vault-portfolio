@@ -1,0 +1,25 @@
+name: Daily Portfolio Refresh
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Trigger VAULT owned-item valuation refresh
+        env:
+          VAULT_APP_URL: ${{ secrets.VAULT_APP_URL }}
+          MARKET_REFRESH_SECRET: ${{ secrets.MARKET_REFRESH_SECRET }}
+        run: npm run refresh:daily

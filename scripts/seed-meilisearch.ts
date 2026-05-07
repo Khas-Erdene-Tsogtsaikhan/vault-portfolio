@@ -1,0 +1,161 @@
+import { createReadStream, existsSync } from "node:fs";
+import { Readable } from "node:stream";
+import { parse } from "csv-parse";
+import { Meilisearch } from "meilisearch";
+import { csvRowToSearchDocument, type PriceChartingSearchDocument } from "../lib/pricecharting-documents";
+import { pricechartingIndexName } from "../lib/meilisearch";
+
+const batchSize = Number(process.env.MEILI_BATCH_SIZE ?? 5000);
+
+async function main() {
+  const host = process.env.MEILI_HOST;
+  const apiKey = process.env.MEILI_MASTER_KEY;
+  if (!host || !apiKey) throw new Error("Set MEILI_HOST and MEILI_MASTER_KEY.");
+
+  const sources = getSources();
+  if (!sources.length) {
+    throw new Error("Set PRICECHARTING_CSV_URLS, PC_CSV_URL_1..PC_CSV_URL_6, or pass CSV file paths as CLI args.");
+  }
+
+  const client = new Meilisearch({ host, apiKey });
+  const index = client.index<PriceChartingSearchDocument>(pricechartingIndexName);
+  await configureIndex(client);
+
+  let total = 0;
+  for (const source of sources) {
+    console.log(`Processing ${source.label}...`);
+    const count = await ingestSource({ client, index, source });
+    total += count;
+    console.log(`Indexed ${count.toLocaleString()} products from ${source.label}`);
+  }
+
+  const stats = await index.getStats();
+  console.log(`Seed complete. ${stats.numberOfDocuments.toLocaleString()} documents searchable. ${total.toLocaleString()} rows processed this run.`);
+}
+
+async function configureIndex(client: Meilisearch) {
+  const index = client.index(pricechartingIndexName);
+  const task = await index.updateSettings({
+    searchableAttributes: ["product_name", "console_name", "category", "brand"],
+    filterableAttributes: ["category", "console_name", "has_graded_price", "has_loose_price", "has_new_price"],
+    sortableAttributes: ["sales_volume", "loose_price", "graded_price", "new_price"],
+    displayedAttributes: ["*"],
+    typoTolerance: {
+      enabled: true,
+      minWordSizeForTypos: {
+        oneTypo: 4,
+        twoTypos: 8
+      }
+    }
+  });
+  await client.tasks.waitForTask(task.taskUid);
+}
+
+async function ingestSource({
+  client,
+  index,
+  source
+}: {
+  client: Meilisearch;
+  index: ReturnType<Meilisearch["index"]>;
+  source: CsvSource;
+}) {
+  const parser = parse({ columns: (headers: string[]) => headers.map(normalizeHeader), skip_empty_lines: true, relax_column_count: true, trim: true });
+  const input = await openSource(source);
+  input.pipe(parser);
+
+  let count = 0;
+  let batch: PriceChartingSearchDocument[] = [];
+
+  for await (const row of parser as AsyncIterable<Record<string, string>>) {
+    const document = csvRowToSearchDocument(row, source.category);
+    if (!document) continue;
+    batch.push(document);
+    if (batch.length >= batchSize) {
+      count += await flushBatch(client, index, batch);
+      console.log(`  ${source.label}: ${count.toLocaleString()} indexed`);
+      batch = [];
+    }
+  }
+
+  if (batch.length) count += await flushBatch(client, index, batch);
+  return count;
+}
+
+async function flushBatch(client: Meilisearch, index: ReturnType<Meilisearch["index"]>, batch: PriceChartingSearchDocument[]) {
+  const task = await index.addDocuments(batch);
+  await client.tasks.waitForTask(task.taskUid, { timeout: 10 * 60 * 1000 });
+  return batch.length;
+}
+
+async function openSource(source: CsvSource) {
+  if (source.url) {
+    const response = await fetch(source.url);
+    if (!response.ok || !response.body) throw new Error(`Could not download ${source.label}: ${response.status}`);
+    return Readable.fromWeb(response.body as any);
+  }
+  return createReadStream(source.path as string);
+}
+
+interface CsvSource {
+  label: string;
+  category?: string;
+  url?: string;
+  path?: string;
+}
+
+function getSources(): CsvSource[] {
+  const cli = process.argv.slice(2).map((path) => ({ path, label: path, category: inferCategory(path) }));
+  if (cli.length) return cli;
+
+  const envUrls = [
+    ...splitUrls(process.env.PRICECHARTING_CSV_URLS),
+    ...Array.from({ length: 12 }, (_, index) => process.env[`PC_CSV_URL_${index + 1}`]).flatMap(splitUrls)
+  ];
+  if (envUrls.length) return envUrls.map((url, index) => ({ url, label: redactUrl(url), category: inferCategory(url) }));
+
+  const local = [
+    "data/pokemon.csv",
+    "data/sports-cards.csv",
+    "data/video-games.csv",
+    "data/magic.csv",
+    "data/comics.csv",
+    "data/coins.csv",
+    "data/other.csv"
+  ].filter(existsSync);
+  return local.map((path) => ({ path, label: path, category: inferCategory(path) }));
+}
+
+function splitUrls(value: string | undefined | null) {
+  return (value ?? "").split(",").map((url) => url.trim()).filter(Boolean);
+}
+
+function inferCategory(value: string) {
+  const normalized = value.toLowerCase();
+  if (/pokemon|magic|yugioh|sports.*card|tcg|card/.test(normalized)) return "trading_cards";
+  if (/video.*game|game|nintendo|playstation|xbox|sega/.test(normalized)) return "video_games";
+  if (/comic/.test(normalized)) return "comics";
+  if (/coin/.test(normalized)) return "coins";
+  if (/funko/.test(normalized)) return "funko";
+  if (/lego/.test(normalized)) return "lego";
+  return undefined;
+}
+
+function normalizeHeader(header: string) {
+  return header.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function redactUrl(value: string) {
+  try {
+    const url = new URL(value);
+    url.search = url.search ? "?..." : "";
+    return url.toString();
+  } catch {
+    return value.slice(0, 80);
+  }
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

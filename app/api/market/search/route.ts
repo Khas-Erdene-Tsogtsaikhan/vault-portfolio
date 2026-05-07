@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
-import { searchPriceCharting } from "@/lib/pricecharting";
+import { searchMarketItems } from "@/lib/market-search";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("q")?.trim() ?? "";
-  const limit = Math.min(Number(searchParams.get("limit") ?? 100), 100);
+  const limit = Math.min(Number(searchParams.get("limit") ?? 50), 100);
+  const category = searchParams.get("category")?.trim() || undefined;
 
   if (!query) {
     return NextResponse.json({
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const payload = await searchPriceCharting(query, limit);
+    const payload = await searchMarketItems(query, limit, category);
     return NextResponse.json(payload);
   } catch (error) {
     return NextResponse.json({

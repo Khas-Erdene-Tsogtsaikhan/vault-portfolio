@@ -1,0 +1,32 @@
+name: Weekly Catalog Sync
+
+on:
+  schedule:
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Sync PriceCharting CSVs to Meilisearch
+        env:
+          MEILI_HOST: ${{ secrets.MEILI_HOST }}
+          MEILI_MASTER_KEY: ${{ secrets.MEILI_MASTER_KEY }}
+          PRICECHARTING_CSV_URLS: ${{ secrets.PRICECHARTING_CSV_URLS }}
+          PC_CSV_URL_1: ${{ secrets.PC_CSV_URL_1 }}
+          PC_CSV_URL_2: ${{ secrets.PC_CSV_URL_2 }}
+          PC_CSV_URL_3: ${{ secrets.PC_CSV_URL_3 }}
+          PC_CSV_URL_4: ${{ secrets.PC_CSV_URL_4 }}
+          PC_CSV_URL_5: ${{ secrets.PC_CSV_URL_5 }}
+          PC_CSV_URL_6: ${{ secrets.PC_CSV_URL_6 }}
+        run: npm run sync:catalog

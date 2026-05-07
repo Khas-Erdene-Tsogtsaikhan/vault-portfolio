@@ -21,26 +21,6 @@ export interface PriceChartingProduct {
   [key: string]: unknown;
 }
 
-interface PriceChartingCatalogRow {
-  pricecharting_id: string;
-  product_name: string;
-  console_name?: string | null;
-  category?: string | null;
-  loose_price?: number | null;
-  cib_price?: number | null;
-  new_price?: number | null;
-  graded_price?: number | null;
-  psa_10_price?: number | null;
-  box_only_price?: number | null;
-  manual_only_price?: number | null;
-  price_fields?: Record<string, unknown> | null;
-  sales_volume?: number | null;
-  price_low?: number | null;
-  price_high?: number | null;
-  image_url?: string | null;
-  last_synced_at?: string | null;
-}
-
 export interface CachedPricePayload {
   results: MarketSearchResult[];
   valuation: PublicValuation;
@@ -81,9 +61,6 @@ export function normalizePriceKey(value: string) {
 
 export async function searchPriceCharting(rawQuery: string, limit = 20): Promise<CachedPricePayload> {
   const query = rawQuery.trim();
-  const catalog = await searchCatalog(query, limit);
-  if (catalog) return catalog;
-
   const identifier = `${CACHE_VERSION}:products:${limit}:${normalizePriceKey(query)}`;
   const cached = await readCache(identifier);
   if (cached) return { ...cached, source: cached.source === "mock" ? "mock" : "pricecharting_cache" };
@@ -107,9 +84,6 @@ export async function searchPriceCharting(rawQuery: string, limit = 20): Promise
 }
 
 export async function getPriceChartingProductResult(productId: string, query = "", preferredField?: string): Promise<CachedPricePayload> {
-  const catalog = await getCatalogProduct(productId, query, preferredField);
-  if (catalog) return catalog;
-
   const identifier = productCacheKey(productId);
   const cached = await readCache(identifier);
   if (cached?.results[0]?.priceOptions?.length) return { ...cached, source: cached.source === "mock" ? "mock" : "pricecharting_cache" };
@@ -130,10 +104,6 @@ export async function getPriceChartingProductResult(productId: string, query = "
 
 export async function refreshPriceChartingProduct(item: Pick<VaultItem, "id" | "pricechartingId" | "pricechartingPriceField" | "currentValueUser">) {
   if (!item.pricechartingId) return null;
-  const catalog = await getCatalogProduct(item.pricechartingId, item.pricechartingId, item.pricechartingPriceField);
-  const catalogResult = catalog?.results[0];
-  if (catalogResult) return catalogResult;
-
   const token = process.env.PRICECHARTING_API_TOKEN;
   if (!token) return null;
   const product = await enqueuePriceChartingCall(() => fetchProduct(token, { id: item.pricechartingId as string }));
@@ -141,60 +111,6 @@ export async function refreshPriceChartingProduct(item: Pick<VaultItem, "id" | "
   if (!result) return null;
   await writeCache(productCacheKey(item.pricechartingId), { results: [result], valuation: resultToValuation(result), source: "pricecharting_api" });
   return result;
-}
-
-async function searchCatalog(query: string, limit: number): Promise<CachedPricePayload | null> {
-  if (!supabaseAdmin || query.length < 2) return null;
-  const { data, error } = await supabaseAdmin.rpc("search_pricecharting_catalog", {
-    search_query: query,
-    result_limit: limit
-  });
-  if (error || !data?.length) return null;
-  const results = (data as PriceChartingCatalogRow[])
-    .map((row) => catalogRowToResult(row, query))
-    .filter(Boolean) as MarketSearchResult[];
-  if (!results.length) return null;
-  return { results, valuation: resultsToValuation(results), source: "pricecharting_catalog" };
-}
-
-async function getCatalogProduct(productId: string, query = "", preferredField?: string): Promise<CachedPricePayload | null> {
-  if (!supabaseAdmin || !productId) return null;
-  const { data, error } = await supabaseAdmin
-    .from("pricecharting_catalog")
-    .select("*")
-    .eq("pricecharting_id", productId)
-    .maybeSingle();
-  if (error || !data) return null;
-  const result = catalogRowToResult(data as PriceChartingCatalogRow, query || data.product_name, preferredField);
-  return result ? { results: [result], valuation: resultToValuation(result), source: "pricecharting_catalog" } : null;
-}
-
-function catalogRowToResult(row: PriceChartingCatalogRow, query: string, preferredField?: string) {
-  const product = catalogRowToProduct(row);
-  return productToResult(product, query, preferredField);
-}
-
-function catalogRowToProduct(row: PriceChartingCatalogRow): PriceChartingProduct {
-  const priceFieldsFromJson = row.price_fields && typeof row.price_fields === "object" ? row.price_fields : {};
-  return {
-    ...priceFieldsFromJson,
-    id: row.pricecharting_id,
-    "product-name": row.product_name,
-    "console-name": row.console_name ?? "PriceCharting",
-    "sales-volume": row.sales_volume ?? 0,
-    "image-url": row.image_url ?? undefined,
-    "loose-price": row.loose_price ?? numericJsonField(priceFieldsFromJson, "loose-price"),
-    "cib-price": row.cib_price ?? numericJsonField(priceFieldsFromJson, "cib-price"),
-    "new-price": row.new_price ?? numericJsonField(priceFieldsFromJson, "new-price"),
-    "graded-price": row.graded_price ?? numericJsonField(priceFieldsFromJson, "graded-price"),
-    "manual-only-price": row.psa_10_price ?? row.manual_only_price ?? numericJsonField(priceFieldsFromJson, "manual-only-price"),
-    "box-only-price": row.box_only_price ?? numericJsonField(priceFieldsFromJson, "box-only-price")
-  };
-}
-
-function numericJsonField(fields: Record<string, unknown>, key: string) {
-  const value = Number(fields[key] ?? 0);
-  return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
 function productCacheKey(productId: string) {
