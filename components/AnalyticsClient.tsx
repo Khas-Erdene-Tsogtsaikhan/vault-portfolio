@@ -29,7 +29,7 @@ import { AppShell } from "@/components/AppShell";
 import { AssetImage } from "@/components/AssetImage";
 import { Badge } from "@/components/Badge";
 import { marketIndices } from "@/lib/demo-data";
-import type { Category, VaultItem } from "@/lib/types";
+import type { Category, PortfolioSnapshot, VaultItem } from "@/lib/types";
 import {
   categoryLabel,
   compactCurrency,
@@ -41,7 +41,6 @@ import {
   getItemHighLow,
   getItemReturn,
   getPrimaryPhoto,
-  getPortfolioHistory,
   getPortfolioMetrics,
   percent,
   preciseCurrency
@@ -74,14 +73,17 @@ const categoryColors: Record<Category, string> = {
 
 export function AnalyticsClient() {
   const items = useVaultStore((state) => state.items);
+  const portfolioSnapshots = useVaultStore((state) => state.portfolioSnapshots);
   const metrics = getPortfolioMetrics(items);
-  const history = getPortfolioHistory(items);
   const breakdown = getCategoryBreakdown(items);
   const [range, setRange] = useState<(typeof ranges)[number]>("YTD");
   const [sort, setSort] = useState<SortKey>("return");
   const dnaCardRef = useRef<HTMLDivElement | null>(null);
 
-  const analytics = useMemo(() => buildAnalytics(items), [items]);
+  const rangeHistory = useMemo(() => buildPortfolioTimeline(items, portfolioSnapshots, range), [items, portfolioSnapshots, range]);
+  const rangeMove = getRangeMove(rangeHistory);
+  const trustSummary = getPortfolioTrustSummary(items);
+  const analytics = useMemo(() => buildAnalytics(items, portfolioSnapshots), [items, portfolioSnapshots]);
   const sortedPositions = useMemo(() => sortPositions(items, sort, metrics.totalValue), [items, metrics.totalValue, sort]);
   const watchBreakdown = breakdown.find((row) => row.category === "watches") ?? breakdown[0];
   const categoryIndex = marketIndices.find((index) => index.category === watchBreakdown?.category) ?? marketIndices[0];
@@ -112,6 +114,7 @@ export function AnalyticsClient() {
                 <AnimatedNumber value={metrics.totalValue} formatter={(value) => currency.format(value)} className="font-serif font-light" />
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-vault-muted">You built a portfolio of physical positions. VAULT turns every object into performance, allocation, and conviction.</p>
+              <p className="mt-3 max-w-xl text-xs leading-5 text-vault-muted">{trustSummary}</p>
 
               <div className="mt-6 flex flex-wrap gap-2">
                 <DeltaPill label="Today" amount={metrics.todayDelta} percentage={metrics.todayDeltaPercent} delay={1.9} bright />
@@ -129,7 +132,7 @@ export function AnalyticsClient() {
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="section-label">Total Portfolio Value</p>
-                  <p className="data mt-1 text-sm text-vault-green">{preciseCurrency.format(metrics.todayDelta)} today</p>
+                  <p className={`data mt-1 text-sm ${rangeMove.delta >= 0 ? "text-vault-green" : "text-vault-muted"}`}>{rangeMove.delta >= 0 ? "+" : ""}{preciseCurrency.format(rangeMove.delta)} · {rangeMove.deltaPct >= 0 ? "+" : ""}{percent.format(rangeMove.deltaPct)} {range}</p>
                 </div>
                 <div className="flex rounded border border-vault-border bg-vault-black p-1">
                   {ranges.map((item) => (
@@ -139,9 +142,10 @@ export function AnalyticsClient() {
                   ))}
                 </div>
               </div>
-              <div className="h-[360px] rounded-[10px] border border-vault-border bg-vault-black p-3 sm:h-[440px]">
+              <div className="flex h-[360px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-3 sm:h-[440px]">
+                <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={analytics.performanceSeries} margin={{ top: 14, right: 8, bottom: 8, left: 0 }}>
+                  <AreaChart data={rangeHistory} margin={{ top: 14, right: 8, bottom: 8, left: 0 }}>
                     <defs>
                       <linearGradient id="portfolioGold" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="#c9a84c" stopOpacity={0.42} />
@@ -150,11 +154,13 @@ export function AnalyticsClient() {
                     </defs>
                     <CartesianGrid vertical={false} stroke="#1a1a24" />
                     <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} />
-                    <YAxis orientation="right" tickFormatter={(value) => compactCurrency.format(Number(value))} tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} domain={["dataMin - 8000", "dataMax + 8000"]} width={58} />
-                    <Tooltip content={<TerminalTooltip startValue={analytics.performanceSeries[0]?.value ?? 0} />} cursor={{ stroke: "#8a8680", strokeWidth: 1 }} />
-                    <Area type="monotone" dataKey="value" stroke="#c9a84c" strokeWidth={3} fill="url(#portfolioGold)" dot={false} isAnimationActive animationDuration={800} animationEasing="ease-out" />
+                    <YAxis orientation="right" tickFormatter={(value) => compactCurrency.format(Number(value))} tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} domain={portfolioValueDomain} width={58} />
+                    <Tooltip content={<TerminalTooltip startValue={rangeHistory[0]?.value ?? 0} />} cursor={{ stroke: "#8a8680", strokeWidth: 1 }} />
+                    <Area type="monotone" dataKey="value" stroke="#c9a84c" strokeWidth={3} fill="url(#portfolioGold)" dot={false} activeDot={{ r: 4, stroke: "#f0ece8", strokeWidth: 1 }} connectNulls isAnimationActive animationDuration={800} animationEasing="ease-out" />
                   </AreaChart>
                 </ResponsiveContainer>
+                </div>
+                <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-vault-faint">Source: portfolio snapshots + item price history · {range} range · hover for exact timestamp</p>
               </div>
             </motion.div>
           </div>
@@ -163,7 +169,7 @@ export function AnalyticsClient() {
         <section className="mb-6 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <MetricCard label="Total Return" value={metrics.totalReturn} formatter={currency.format} sub={`${percent.format(metrics.totalReturnPercent)} since first item`} tone="green" delay={0} />
           <MetricCard label="Best Single Day" value={analytics.bestDay.amount} formatter={currency.format} sub={`${analytics.bestDay.date} · ${analytics.bestDay.item}`} tone="green" delay={0.1} />
-          <MetricCard label="Most Valuable Item" value={metrics.topItem.currentValueUser} formatter={currency.format} sub={metrics.topItem.name} tone="gold" delay={0.2} />
+          <MetricCard label="Most Valuable Item" value={getCurrentValue(metrics.topItem)} formatter={currency.format} sub={metrics.topItem.name} tone="gold" delay={0.2} />
           <MetricCard label="Items Tracked" value={metrics.itemCount} formatter={(value) => Math.round(value).toString()} sub={`Across ${breakdown.length} categories`} tone="text" delay={0.3} />
           <MetricCard label="Avg Hold Period" value={analytics.avgHoldYears} formatter={(value) => `${value.toFixed(1)} yrs`} sub="Avg across all positions" tone="text" delay={0.4} />
         </section>
@@ -375,9 +381,9 @@ function PositionRow({ item, index, totalValue }: { item: VaultItem; index: numb
   const itemReturn = getItemReturn(item);
   const high = getItemHighLow(item).high;
   const weight = totalValue ? getCurrentValue(item) / totalValue : 0;
-  const isAth = item.currentValueUser >= high;
+  const isAth = getCurrentValue(item) >= high;
   const acquiredRecently = new Date(item.createdAt) >= new Date("2026-04-05T00:00:00Z");
-  const multiplier = item.currentValueUser / item.costBasis;
+  const multiplier = getCurrentValue(item) / item.costBasis;
 
   return (
     <motion.div layout initial={{ opacity: 0, y: -10 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.05 }} className={`grid grid-cols-[1.6fr_0.9fr_0.85fr_0.85fr_0.85fr_0.8fr_0.8fr_0.9fr] items-center gap-3 border-b border-vault-border px-4 py-3.5 last:border-b-0 ${isAth ? "bg-vault-gold/5" : "bg-vault-card"} hover:bg-vault-gold/5`}>
@@ -387,16 +393,17 @@ function PositionRow({ item, index, totalValue }: { item: VaultItem; index: numb
         </div>
         <span>
           <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>
-          <span className="block text-[10px] text-vault-faint">{item.brand} · {item.condition}</span>
+          <span className="block text-[10px] text-vault-faint">{item.brand} · Condition: {item.condition}</span>
         </span>
       </Link>
       <span><Badge tone="muted">{categoryLabel(item.category)}</Badge></span>
       <span className="data text-[13px] text-vault-muted">{currency.format(item.costBasis)}</span>
       <span>
-        <span className={`data block text-[14px] ${isAth ? "text-vault-gold" : "text-vault-text"}`}>{currency.format(item.currentValueUser)}</span>
+        <span className={`data block text-[14px] ${isAth ? "text-vault-gold" : "text-vault-text"}`}>{currency.format(getCurrentValue(item))}</span>
+        <span className="block text-[10px] text-vault-faint">{getValueSourceLabel(item)} · {getSyncLabel(item.currentValueUpdatedAt)}</span>
         <span className="mt-1 flex gap-1">{isAth ? <MiniBadge tone="gold">ATH</MiniBadge> : null}{acquiredRecently ? <MiniBadge tone="blue">New</MiniBadge> : null}</span>
       </span>
-      <span className={`data text-[13px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>{daily.amount >= 0 ? "▲" : "▼"} {preciseCurrency.format(daily.amount)}<span className="block text-[10px]">{percent.format(daily.percentage)}</span></span>
+      <span className={`data text-[13px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-muted"}`}>{daily.amount >= 0 ? "▲" : "▼"} {preciseCurrency.format(daily.amount)}<span className="block text-[10px]">{percent.format(daily.percentage)}</span></span>
       <span className={`data text-[15px] ${itemReturn.percentage > 0.5 ? "font-semibold text-vault-green" : "text-vault-green"}`}>{percent.format(itemReturn.percentage)}{multiplier >= 2 ? <MiniBadge tone="gold">{Math.floor(multiplier)}x</MiniBadge> : null}</span>
       <span className="data text-[13px] text-vault-muted">{currency.format(high)}</span>
       <span>
@@ -459,7 +466,7 @@ function MoverColumn({ title, items }: { title: string; items: VaultItem[] }) {
                   <p className="truncate text-sm font-medium text-vault-text">{item.name}</p>
                   <p className="text-[11px] text-vault-faint">{categoryLabel(item.category)}</p>
                 </div>
-                <div className={`data text-right text-[12px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
+                <div className={`data text-right text-[12px] ${daily.amount >= 0 ? "text-vault-green" : "text-vault-muted"}`}>
                   {daily.amount >= 0 ? "▲" : "▼"} {preciseCurrency.format(daily.amount)}
                   <span className="block">{percent.format(daily.percentage)}</span>
                 </div>
@@ -474,12 +481,12 @@ function MoverColumn({ title, items }: { title: string; items: VaultItem[] }) {
   );
 }
 
-function TerminalTooltip({ active, payload, label, startValue }: { active?: boolean; payload?: Array<{ value: number }>; label?: string; startValue: number }) {
+function TerminalTooltip({ active, payload, label, startValue }: { active?: boolean; payload?: Array<{ value: number; payload?: { tooltipLabel?: string } }>; label?: string; startValue: number }) {
   if (!active || !payload?.length) return null;
   const value = payload[0].value;
   return (
     <div className="rounded-[8px] border border-vault-bright bg-vault-card p-3">
-      <p className="section-label">{label}</p>
+      <p className="section-label">{payload[0].payload?.tooltipLabel ?? label}</p>
       <p className="data mt-1 text-sm text-vault-text">{currency.format(value)}</p>
       <p className="data mt-1 text-xs text-vault-green">{currency.format(value - startValue)} from period start</p>
     </div>
@@ -498,16 +505,144 @@ function DarkTooltip({ active, payload, label }: { active?: boolean; payload?: A
   );
 }
 
-function buildAnalytics(items: VaultItem[]) {
+const portfolioValueDomain = ([dataMin, dataMax]: [number, number]): [number, number] => {
+  const min = Number.isFinite(dataMin) ? Math.max(0, dataMin) : 0;
+  const max = Number.isFinite(dataMax) ? Math.max(dataMax, min + 1) : min + 1;
+  const padding = Math.max((max - min) * 0.12, max * 0.04, 100);
+  return [Math.max(0, Math.floor(min - padding)), Math.ceil(max + padding)];
+};
+
+function buildPortfolioTimeline(items: VaultItem[], snapshots: PortfolioSnapshot[], range: (typeof ranges)[number]) {
+  const now = new Date();
+  const start = getRangeStart(range, now, items, snapshots);
+  const timeSet = new Set<number>([start.getTime(), now.getTime()]);
+
+  for (const snapshot of snapshots) {
+    const date = new Date(snapshot.createdAt || `${snapshot.snapshotDate}T12:00:00`);
+    if (date >= start && date <= now) timeSet.add(date.getTime());
+  }
+
+  for (const item of items) {
+    [item.createdAt, item.updatedAt, item.currentValueUpdatedAt, ...item.priceHistory.map((point) => point.recordedAt)]
+      .map((value) => new Date(value))
+      .filter((date) => Number.isFinite(date.getTime()) && date >= start && date <= now)
+      .forEach((date) => timeSet.add(date.getTime()));
+  }
+
+  const times = Array.from(timeSet).sort((a, b) => a - b);
+  const sampledTimes = thinTimeline(times, range);
+  return sampledTimes.map((time, index) => {
+    const date = new Date(time);
+    const value = items.reduce((sum, item) => sum + getTrackedItemValueAt(item, date), 0);
+    return {
+      date: date.toISOString(),
+      label: formatAxisLabel(date, range),
+      tooltipLabel: formatTooltipLabel(date),
+      value,
+      sp500: value * (1 + index * 0.002)
+    };
+  });
+}
+
+function getRangeStart(range: (typeof ranges)[number], now: Date, items: VaultItem[], snapshots: PortfolioSnapshot[]) {
+  const start = new Date(now);
+  if (range === "1D") start.setDate(now.getDate() - 1);
+  if (range === "1W") start.setDate(now.getDate() - 7);
+  if (range === "1M") start.setMonth(now.getMonth() - 1);
+  if (range === "3M") start.setMonth(now.getMonth() - 3);
+  if (range === "YTD") return new Date(now.getFullYear(), 0, 1);
+  if (range !== "ALL") return start;
+
+  const candidates = [
+    ...items.map((item) => new Date(item.createdAt).getTime()),
+    ...snapshots.map((snapshot) => new Date(snapshot.createdAt || `${snapshot.snapshotDate}T12:00:00`).getTime())
+  ].filter(Number.isFinite);
+  return candidates.length ? new Date(Math.min(...candidates)) : new Date(now.getTime() - 86400000);
+}
+
+function thinTimeline(times: number[], range: (typeof ranges)[number]) {
+  const maxPoints = range === "1D" ? 36 : range === "1W" ? 42 : 60;
+  if (times.length <= maxPoints) return times;
+  const step = Math.ceil(times.length / maxPoints);
+  const sampled = times.filter((_, index) => index % step === 0);
+  if (sampled.at(-1) !== times.at(-1)) sampled.push(times.at(-1)!);
+  return sampled;
+}
+
+function getTrackedItemValueAt(item: VaultItem, date: Date) {
+  const trackedAt = new Date(item.createdAt).getTime();
+  const at = date.getTime();
+  if (at < trackedAt) return 0;
+
+  const history = [
+    ...item.priceHistory.map((point) => ({ value: point.value, time: new Date(point.recordedAt).getTime() })),
+    { value: getCurrentValue(item), time: new Date(item.currentValueUpdatedAt).getTime() }
+  ]
+    .filter((point) => Number.isFinite(point.time))
+    .sort((a, b) => a.time - b.time);
+
+  const point = [...history].reverse().find((candidate) => candidate.time <= at);
+  return point?.value ?? getCurrentValue(item);
+}
+
+function getRangeMove(history: Array<{ value: number }>) {
+  const first = history[0]?.value ?? 0;
+  const last = history.at(-1)?.value ?? first;
+  const delta = last - first;
+  return { delta, deltaPct: first > 0 ? delta / first : 0 };
+}
+
+function getPortfolioTrustSummary(items: VaultItem[]) {
+  const marketCount = items.filter((item) => item.currentValueSource === "PriceCharting Guide Value").length;
+  const manualCount = items.length - marketCount;
+  const latestSync = items
+    .map((item) => new Date(item.currentValueUpdatedAt).getTime())
+    .filter(Number.isFinite)
+    .sort((a, b) => b - a)[0];
+  const source = marketCount && manualCount
+    ? `PriceCharting Guide Value on ${marketCount} item${marketCount === 1 ? "" : "s"} · ${manualCount} manual estimate${manualCount === 1 ? "" : "s"}`
+    : marketCount
+      ? "PriceCharting Guide Value"
+      : "Manual owner estimates";
+  return `${source} · ${latestSync ? getSyncLabel(new Date(latestSync).toISOString()) : "Sync pending"} · Conditions tracked per asset`;
+}
+
+function getValueSourceLabel(item: VaultItem) {
+  if (item.currentValueSource === "PriceCharting Guide Value") return "PriceCharting Guide Value";
+  if (item.currentValueSource === "Your estimate") return "Manual estimate";
+  return item.currentValueSource;
+}
+
+function getSyncLabel(lastSyncedAt?: string) {
+  if (!lastSyncedAt) return "Sync pending";
+  const hours = Math.floor((Date.now() - new Date(lastSyncedAt).getTime()) / 3600000);
+  if (hours < 1) return "Last synced just now";
+  if (hours < 24) return `Last synced ${hours}h ago`;
+  if (hours < 48) return "Last synced yesterday";
+  return `Last synced ${Math.floor(hours / 24)}d ago`;
+}
+
+function formatAxisLabel(date: Date, range: (typeof ranges)[number]) {
+  if (range === "1D") return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (range === "1W") return date.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
+  if (range === "1M" || range === "3M" || range === "YTD") return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
+}
+
+function formatTooltipLabel(date: Date) {
+  return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+}
+
+function buildAnalytics(items: VaultItem[], snapshots: PortfolioSnapshot[]) {
   const metrics = getPortfolioMetrics(items);
-  const history = getPortfolioHistory(items);
+  const history = buildPortfolioTimeline(items, snapshots, "ALL");
   const firstValue = history[0]?.value ?? metrics.costBasis;
   const current = metrics.totalValue;
   const weekDelta = metrics.todayDelta * 6.8;
   const yearDelta = current - firstValue;
   const bestDayItem = [...items].sort((a, b) => getItemDailyDelta(b).amount - getItemDailyDelta(a).amount)[0];
   const avgHoldYears = average(items.map((item) => yearsSince(item.acquiredDate)));
-  const performanceSeries = history.map((point, index) => ({ label: point.month, value: point.value, date: point.month, delta: point.value - firstValue, sp500: point.sp500 + index * 900 }));
+  const performanceSeries = history.map((point, index) => ({ label: point.label, value: point.value, date: point.date, delta: point.value - firstValue, sp500: point.sp500 + index * 900 }));
   const acquisitionSeries = buildAcquisitionSeries(items);
   const gainers = [...items].filter((item) => getItemDailyDelta(item).amount > 0).sort((a, b) => getItemDailyDelta(b).amount - getItemDailyDelta(a).amount);
   const losers = [...items].filter((item) => getItemDailyDelta(item).amount < 0).sort((a, b) => getItemDailyDelta(a).amount - getItemDailyDelta(b).amount);
@@ -522,7 +657,7 @@ function buildAnalytics(items: VaultItem[]) {
     weekDeltaPercent: metrics.value24hAgo ? weekDelta / Math.max(metrics.value24hAgo - weekDelta, 1) : 0,
     yearDelta,
     yearDeltaPercent: firstValue ? yearDelta / firstValue : 0,
-    bestDay: { amount: bestDayItem ? getItemDailyDelta(bestDayItem).amount : 0, date: "May 4", item: bestDayItem ? `${bestDayItem.name} spike` : "First asset waiting" },
+    bestDay: { amount: bestDayItem ? getItemDailyDelta(bestDayItem).amount : 0, date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }), item: bestDayItem ? `${bestDayItem.name} spike` : "First asset waiting" },
     avgHoldYears,
     performanceSeries,
     acquisitionSeries,
@@ -583,7 +718,7 @@ function sortLabel(sort: SortKey) {
 }
 
 function yearsSince(date: string) {
-  return Math.max(0, (new Date("2026-05-05T00:00:00Z").getTime() - new Date(date).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+  return Math.max(0, (Date.now() - new Date(date).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
 }
 
 function average(values: number[]) {

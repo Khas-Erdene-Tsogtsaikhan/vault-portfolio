@@ -28,7 +28,7 @@ import {
 import type { PortfolioSnapshot, VaultItem } from "@/lib/types";
 import { useVaultStore } from "@/lib/vault-store";
 
-const ranges = ["1H", "1D", "1W", "1M", "3M", "YTD", "ALL"] as const;
+const ranges = ["1D", "1W", "1M", "3M", "YTD", "ALL"] as const;
 
 export function DashboardClient() {
   const items = useVaultStore((state) => state.items);
@@ -398,7 +398,6 @@ function getValueSourceLabel(item: VaultItem) {
 
 function getRangeStart(range: (typeof ranges)[number], now: Date, items: VaultItem[], snapshots: PortfolioSnapshot[]) {
   const start = new Date(now);
-  if (range === "1H") start.setHours(now.getHours() - 1);
   if (range === "1D") start.setDate(now.getDate() - 1);
   if (range === "1W") start.setDate(now.getDate() - 7);
   if (range === "1M") start.setMonth(now.getMonth() - 1);
@@ -414,7 +413,7 @@ function getRangeStart(range: (typeof ranges)[number], now: Date, items: VaultIt
 }
 
 function thinTimeline(times: number[], range: (typeof ranges)[number]) {
-  const maxPoints = range === "1H" || range === "1D" ? 36 : range === "1W" ? 42 : 60;
+  const maxPoints = range === "1D" ? 36 : range === "1W" ? 42 : 60;
   if (times.length <= maxPoints) return times;
   const step = Math.ceil(times.length / maxPoints);
   const sampled = times.filter((_, index) => index % step === 0);
@@ -439,7 +438,7 @@ function getTrackedItemValueAt(item: VaultItem, date: Date) {
 }
 
 function formatAxisLabel(date: Date, range: (typeof ranges)[number]) {
-  if (range === "1H" || range === "1D") return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  if (range === "1D") return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
   if (range === "1W") return date.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
   if (range === "1M" || range === "3M" || range === "YTD") return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   return date.toLocaleDateString("en-US", { month: "short", year: "2-digit" });
