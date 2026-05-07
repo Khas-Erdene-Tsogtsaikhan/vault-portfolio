@@ -153,10 +153,18 @@ export function AnalyticsClient() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="#1a1a24" />
-                    <XAxis dataKey="label" tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} />
+                    <XAxis
+                      dataKey="date"
+                      interval={getXAxisInterval(rangeHistory.length)}
+                      minTickGap={34}
+                      tickFormatter={(value) => formatAxisLabel(new Date(value), range)}
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }}
+                    />
                     <YAxis orientation="right" tickFormatter={(value) => compactCurrency.format(Number(value))} tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} domain={portfolioValueDomain} width={58} />
                     <Tooltip content={<TerminalTooltip startValue={rangeHistory[0]?.value ?? 0} />} cursor={{ stroke: "#8a8680", strokeWidth: 1 }} />
-                    <Area type="monotone" dataKey="value" stroke="#c9a84c" strokeWidth={3} fill="url(#portfolioGold)" dot={false} activeDot={{ r: 4, stroke: "#f0ece8", strokeWidth: 1 }} connectNulls isAnimationActive animationDuration={800} animationEasing="ease-out" />
+                    <Area type="monotone" dataKey="value" stroke="#c9a84c" strokeWidth={3} fill="url(#portfolioGold)" dot={false} activeDot={{ r: 4, stroke: "#f0ece8", strokeWidth: 1 }} connectNulls isAnimationActive animationDuration={800} animationEasing="ease-out" strokeLinecap="round" strokeLinejoin="round" />
                   </AreaChart>
                 </ResponsiveContainer>
                 </div>
@@ -590,6 +598,12 @@ function getRangeMove(history: Array<{ value: number }>) {
   const last = history.at(-1)?.value ?? first;
   const delta = last - first;
   return { delta, deltaPct: first > 0 ? delta / first : 0 };
+}
+
+function getXAxisInterval(pointCount: number) {
+  if (pointCount <= 4) return 0;
+  if (pointCount <= 8) return 1;
+  return Math.ceil(pointCount / 5);
 }
 
 function getPortfolioTrustSummary(items: VaultItem[]) {

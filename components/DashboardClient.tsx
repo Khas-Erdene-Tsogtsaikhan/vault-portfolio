@@ -199,15 +199,23 @@ export function DashboardClient() {
                       <stop offset="85%" stopColor={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="label" tickLine={false} axisLine={false} minTickGap={22} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} />
+                  <XAxis
+                    dataKey="date"
+                    interval={getXAxisInterval(rangeHistory.length)}
+                    minTickGap={34}
+                    tickFormatter={(value) => formatAxisLabel(new Date(value), range)}
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }}
+                  />
                   <YAxis orientation="right" tickLine={false} axisLine={false} width={72} domain={portfolioValueDomain} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} tickFormatter={(value) => compactCurrency.format(Number(value))} />
                   <Tooltip
                     cursor={{ stroke: "#2a2a3a" }}
                     contentStyle={{ background: "#111118", border: "1px solid #2a2a3a", borderRadius: 8, color: "#f0ece8" }}
                     formatter={(value: number, name: string) => [currency.format(value), name === "value" ? "Vault" : "S&P 500"]}
-                    labelFormatter={(_, payload: any) => payload?.[0]?.payload?.tooltipLabel ?? ""}
+                    labelFormatter={(value) => formatTooltipLabel(new Date(value))}
                   />
-                  <Area type="monotone" dataKey="value" stroke={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} fill="url(#vaultValueGradient)" strokeWidth={3} dot={false} activeDot={{ r: 4, stroke: "#f0ece8", strokeWidth: 1 }} connectNulls isAnimationActive animationDuration={800} animationEasing="ease-out" />
+                  <Area type="monotone" dataKey="value" stroke={metrics.todayDelta >= 0 ? "#50c98a" : "#c9a84c"} fill="url(#vaultValueGradient)" strokeWidth={3} dot={false} activeDot={{ r: 4, stroke: "#f0ece8", strokeWidth: 1 }} connectNulls isAnimationActive animationDuration={800} animationEasing="ease-out" strokeLinecap="round" strokeLinejoin="round" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -373,6 +381,12 @@ function getRangeMove(history: Array<{ value: number }>) {
   const last = history.at(-1)?.value ?? first;
   const delta = last - first;
   return { delta, deltaPct: first > 0 ? delta / first : 0 };
+}
+
+function getXAxisInterval(pointCount: number) {
+  if (pointCount <= 4) return 0;
+  if (pointCount <= 8) return 1;
+  return Math.ceil(pointCount / 5);
 }
 
 function getPortfolioTrustSummary(items: VaultItem[]) {
