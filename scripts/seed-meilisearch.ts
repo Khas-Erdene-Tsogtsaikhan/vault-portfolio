@@ -2,6 +2,7 @@ import { createReadStream, existsSync } from "node:fs";
 import { Readable } from "node:stream";
 import { parse } from "csv-parse";
 import { Meilisearch } from "meilisearch";
+import type { Task } from "meilisearch";
 import { csvRowToSearchDocument, type PriceChartingSearchDocument } from "../lib/pricecharting-documents";
 import { pricechartingIndexName } from "../lib/meilisearch";
 
@@ -30,7 +31,7 @@ async function main() {
     console.log(`Indexed ${count.toLocaleString()} products from ${source.label}`);
   }
 
-  const stats = await index.getStats();
+  const stats = await waitForDocumentStats(index);
   console.log(`Seed complete. ${stats.numberOfDocuments.toLocaleString()} documents searchable. ${total.toLocaleString()} rows processed this run.`);
   if (total === 0 || stats.numberOfDocuments === 0) {
     throw new Error("Meilisearch catalog sync produced 0 searchable products. Check that your GitHub CSV URL secrets point to real PriceCharting CSV files, not an HTML page, expired URL, or empty file.");
@@ -52,7 +53,8 @@ async function configureIndex(client: Meilisearch) {
       }
     }
   });
-  await client.tasks.waitForTask(task.taskUid);
+  const completed = await client.tasks.waitForTask(task.taskUid);
+  assertTaskSucceeded(completed, "index settings update");
 }
 
 async function ingestSource({
@@ -104,9 +106,25 @@ async function ingestSource({
 }
 
 async function flushBatch(client: Meilisearch, index: ReturnType<Meilisearch["index"]>, batch: PriceChartingSearchDocument[]) {
-  const task = await index.addDocuments(batch);
-  await client.tasks.waitForTask(task.taskUid, { timeout: 10 * 60 * 1000 });
+  const task = await index.addDocuments(batch, { primaryKey: "id" });
+  const completed = await client.tasks.waitForTask(task.taskUid, { timeout: 10 * 60 * 1000 });
+  assertTaskSucceeded(completed, `document batch ${task.taskUid}`);
   return batch.length;
+}
+
+function assertTaskSucceeded(task: Task, label: string) {
+  if (task.status === "succeeded") return;
+  const detail = task.error ? `${task.error.code}: ${task.error.message}` : `status=${task.status}`;
+  throw new Error(`Meilisearch ${label} failed: ${detail}`);
+}
+
+async function waitForDocumentStats(index: ReturnType<Meilisearch["index"]>) {
+  let stats = await index.getStats();
+  for (let attempt = 0; attempt < 10 && stats.numberOfDocuments === 0; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    stats = await index.getStats();
+  }
+  return stats;
 }
 
 async function openSource(source: CsvSource) {
