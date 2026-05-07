@@ -303,6 +303,8 @@ export const useVaultStore = create<VaultState>()(
               ? {
                   ...item,
                   ...input,
+                  currentValueMarket: input.currentValueUser !== undefined ? undefined : item.currentValueMarket,
+                  currentValueSource: input.currentValueUser !== undefined ? "Your estimate" : item.currentValueSource,
                   currentValueUpdatedAt: input.currentValueUser !== undefined ? now : item.currentValueUpdatedAt,
                   updatedAt: now,
                   priceHistory: input.currentValueUser !== undefined && input.currentValueUser !== item.currentValueUser
@@ -310,7 +312,16 @@ export const useVaultStore = create<VaultState>()(
                     : item.priceHistory
                 }
               : item
-          )
+          ),
+          user: withRollups(state.user, state.items.map((item) =>
+            item.id === itemId
+              ? {
+                  ...item,
+                  ...input,
+                  currentValueMarket: input.currentValueUser !== undefined ? undefined : item.currentValueMarket
+                }
+              : item
+          ))
         }));
         if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
           await updateSupabaseItemDetails(itemId, input);
@@ -324,12 +335,15 @@ export const useVaultStore = create<VaultState>()(
               ? {
                   ...item,
                   currentValueUser: value,
+                  currentValueMarket: undefined,
+                  currentValueSource: "Your estimate",
                   currentValueUpdatedAt: now,
                   updatedAt: now,
                   priceHistory: [...item.priceHistory, { id: `${itemId}-estimate-${Date.now()}`, itemId, value, source: "user", recordedAt: now }]
                 }
               : item
-          )
+          ),
+          user: withRollups(state.user, state.items.map((item) => item.id === itemId ? { ...item, currentValueUser: value, currentValueMarket: undefined } : item))
         }));
         if (supabase && get().authStatus === "authenticated" && get().user.id !== demoUser.id) {
           await updateSupabaseEstimate(itemId, value);
@@ -443,3 +457,13 @@ export const useVaultStore = create<VaultState>()(
     { name: "vault-phase-one" }
   )
 );
+
+function withRollups(user: VaultUser, items: VaultItem[]) {
+  const totalValue = items.reduce((sum, item) => sum + (item.currentValueMarket ?? item.currentValueUser), 0);
+  return {
+    ...user,
+    tier: getTier(totalValue),
+    totalItems: items.length,
+    totalValueCached: totalValue
+  };
+}

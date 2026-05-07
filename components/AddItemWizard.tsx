@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Barcode, CheckCircle2, FileUp, Search, Sparkles, Trash2, X } from "lucide-react";
+import { Barcode, CheckCircle2, FileUp, Search, Sparkles, Trash2 } from "lucide-react";
 import { MarketLookup } from "@/components/MarketLookup";
 import { categories, documentTypeLabels, documentTypes, type Category, type VaultDocument } from "@/lib/types";
 import type { MarketSearchResult } from "@/lib/types";
@@ -30,7 +30,6 @@ export function AddItemWizard() {
   const [addCelebration, setAddCelebration] = useState<{ count: number; value: number; gain: number } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [picked, setPicked] = useState<PickedResult[]>([]);
-  const [conditionModal, setConditionModal] = useState<MarketSearchResult | null>(null);
   const [manualPhotos, setManualPhotos] = useState<File[]>([]);
   const [manualDocuments, setManualDocuments] = useState<Array<{ file: File; type: VaultDocument["type"] }>>([]);
   const [form, setForm] = useState({
@@ -54,22 +53,13 @@ export function AddItemWizard() {
       setToast("VAULT could not load a PriceCharting guide value for that result yet. Try another match or use Manual.");
       return;
     }
-    if (picked.some((item) => item.result.id === result.id)) {
-      removePicked(result.id);
-      setToast(`${result.title} removed from your selected positions.`);
-      return;
-    }
-    setConditionModal(result);
-  }
-
-  function addModalResult(result: MarketSearchResult, costBasis: string) {
     setPicked((current) => {
       if (current.some((item) => item.result.id === result.id)) return current.filter((item) => item.result.id !== result.id);
       return [
         ...current,
         {
           result,
-          costBasis,
+          costBasis: "",
           acquiredDate: new Date().toISOString().slice(0, 10),
           condition: result.condition ?? "Excellent",
           photoFiles: [],
@@ -77,8 +67,7 @@ export function AddItemWizard() {
         }
       ];
     });
-    setConditionModal(null);
-    setToast(`${result.title} is staged with ${currency.format(result.price)} guide value. Confirm to place it in your Vault.`);
+    setToast(`${result.title} loaded from PriceCharting. Choose condition and cost basis in the selected tray.`);
   }
 
   function removePicked(id: string) {
@@ -258,146 +247,8 @@ export function AddItemWizard() {
           </motion.div>
         ) : null}
         {toast ? <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed bottom-6 right-6 z-50 max-w-sm rounded-lg border border-vault-gold/35 bg-vault-card p-4 text-sm leading-6 text-vault-text">{toast}</motion.div> : null}
-        {conditionModal ? (
-          <ConditionPickerModal
-            product={conditionModal}
-            onClose={() => setConditionModal(null)}
-            onAdd={addModalResult}
-          />
-        ) : null}
       </AnimatePresence>
     </div>
-  );
-}
-
-function ConditionPickerModal({ product, onAdd, onClose }: { product: MarketSearchResult; onAdd: (result: MarketSearchResult, costBasis: string) => void; onClose: () => void }) {
-  const conditions = [...(product.priceOptions ?? [{ field: product.pricechartingPriceField ?? "guide", label: product.condition ?? "Guide Value", value: product.price }])]
-    .filter((condition) => condition.value > 0)
-    .sort((a, b) => b.value - a.value);
-  const [selectedField, setSelectedField] = useState(conditions[0]?.field ?? "");
-  const [costBasis, setCostBasis] = useState("");
-  const selected = conditions.find((condition) => condition.field === selectedField) ?? conditions[0];
-  const guideValue = selected?.value ?? 0;
-  const paid = Number(costBasis || 0);
-  const gain = guideValue - paid;
-  const gainPct = paid > 0 ? gain / paid : null;
-  const positive = gain >= 0;
-
-  function add() {
-    if (!selected) return;
-    onAdd({
-      ...product,
-      id: `pricecharting-${product.pricechartingId ?? product.id}-${selected.field}`,
-      price: selected.value,
-      condition: selected.label,
-      pricechartingPriceField: selected.field,
-      lastSalePrice: selected.value
-    }, costBasis);
-  }
-
-  return (
-    <motion.div
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-vault-black/88 p-4 backdrop-blur-xl"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-    >
-      <motion.div
-        className="w-full max-w-2xl overflow-hidden rounded-[12px] border border-vault-gold-dim bg-vault-card"
-        initial={{ scale: 0.94, y: 24 }}
-        animate={{ scale: 1, y: 0 }}
-        exit={{ scale: 0.98, y: 12 }}
-        transition={{ type: "spring", stiffness: 190, damping: 20 }}
-      >
-        <div className="flex items-start justify-between border-b border-vault-border p-5">
-          <div className="flex gap-4">
-            <div className="h-[120px] w-[120px] overflow-hidden rounded-[10px] border border-vault-border bg-vault-black">
-              {product.imageUrl ? <TrayImage src={product.imageUrl} alt="" /> : <Sparkles className="m-10 text-vault-gold" size={36} />}
-            </div>
-            <div className="min-w-0 pt-1">
-              <p className="section-label">Position Confirmation</p>
-              <h2 className="mt-2 font-serif text-4xl font-light leading-none text-vault-text">{product.title}</h2>
-              <p className="mt-3 text-sm text-vault-muted">{product.pricechartingConsole ?? "PriceCharting"} · {categoryLabel(product.category)}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="rounded border border-vault-border p-2 text-vault-muted transition hover:border-vault-bright hover:text-vault-text" aria-label="Close condition picker">
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="grid gap-5 p-5">
-          <div>
-            <p className="section-label">Select Condition</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {conditions.map((condition) => (
-                <button
-                  key={condition.field}
-                  onClick={() => setSelectedField(condition.field)}
-                  className={`rounded-[10px] border p-4 text-left transition hover:-translate-y-0.5 ${
-                    selectedField === condition.field ? "border-vault-gold bg-vault-gold/10" : "border-vault-border bg-vault-black hover:border-vault-bright"
-                  }`}
-                >
-                  <span className="block text-sm font-semibold text-vault-text">{condition.label}</span>
-                  <span className="data mt-2 block text-2xl text-vault-gold">{currency.format(condition.value)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <label>
-            <span className="section-label mb-2 block">What did you pay?</span>
-            <div className="relative">
-              <span className="data absolute left-3 top-1/2 -translate-y-1/2 text-vault-faint">$</span>
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                value={costBasis}
-                onChange={(event) => setCostBasis(event.target.value)}
-                className="form-input data pl-8 text-lg"
-                placeholder="0.00"
-              />
-            </div>
-          </label>
-
-          <AnimatePresence>
-            {costBasis && selected ? (
-              <motion.div
-                className={`rounded-[12px] border p-5 ${positive ? "border-vault-green/30 bg-vault-green/10" : "border-vault-red/30 bg-vault-red/10"}`}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-              >
-                <div className="flex justify-between gap-4 text-sm">
-                  <span className="text-vault-muted">Guide Value</span>
-                  <span className="data text-vault-text">{currency.format(guideValue)}</span>
-                </div>
-                <div className="mt-2 flex justify-between gap-4 text-sm">
-                  <span className="text-vault-muted">You Paid</span>
-                  <span className="data text-vault-text">{currency.format(paid)}</span>
-                </div>
-                <div className="mt-4 border-t border-vault-border pt-4">
-                  <div className="flex justify-between gap-4">
-                    <span className="font-semibold text-vault-text">Unrealized Gain</span>
-                    <span className={`data text-xl ${positive ? "text-vault-green" : "text-vault-red"}`}>
-                      {positive ? "+" : "-"}{currency.format(Math.abs(gain))}{gainPct !== null ? ` (${positive ? "+" : "-"}${Math.abs(gainPct * 100).toFixed(1)}%)` : ""}
-                    </span>
-                  </div>
-                </div>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
-
-          <button
-            disabled={!selected}
-            onClick={add}
-            className="rounded-md bg-vault-gold px-5 py-4 text-sm font-semibold text-vault-black transition hover:bg-vault-gold-light disabled:opacity-50"
-          >
-            Add to Vault
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
   );
 }
 
@@ -459,58 +310,76 @@ function PickedTray({ picked, selectedValue, selectedCost, onRemove, onUpdate }:
         </div>
       ) : null}
       <div className="mt-5 space-y-3">
-        {picked.map((item) => (
-          <article key={item.result.id} className="rounded-[10px] border border-vault-border bg-vault-black p-3">
-            <div className="flex gap-3">
-              <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-vault-border bg-vault-surface">
-                {item.result.imageUrl ? <TrayImage src={item.result.imageUrl} alt="" /> : null}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 text-sm font-medium text-vault-text">{item.result.title}</p>
-                <p className="data mt-1 text-sm text-vault-gold">{currency.format(item.result.price)}</p>
-              </div>
-              <button onClick={() => onRemove(item.result.id)} className="self-start rounded border border-vault-border p-2 text-vault-muted transition hover:border-vault-red hover:text-vault-red" aria-label="Remove selected item">
-                <Trash2 size={14} />
-              </button>
-            </div>
-            <div className="mt-3 grid gap-2">
-              <input className="form-input data" value={item.costBasis} onChange={(event) => onUpdate(item.result.id, { costBasis: event.target.value })} placeholder="What you paid" />
-              <input className="form-input data" type="date" value={item.acquiredDate} onChange={(event) => onUpdate(item.result.id, { acquiredDate: event.target.value })} />
-              {item.result.priceOptions?.length ? (
-                <select
-                  className="form-input"
-                  value={item.result.pricechartingPriceField}
-                  onChange={(event) => {
-                    const option = item.result.priceOptions?.find((candidate) => candidate.field === event.target.value);
-                    if (!option) return;
-                    onUpdate(item.result.id, {
-                      condition: option.label,
-                      result: {
-                        ...item.result,
-                        price: option.value,
-                        condition: option.label,
-                        pricechartingPriceField: option.field,
-                        lastSalePrice: option.value
-                      }
-                    });
-                  }}
-                >
-                  {item.result.priceOptions.map((option) => <option key={option.field} value={option.field}>{option.label} · {currency.format(option.value)}</option>)}
-                </select>
-              ) : (
-                <input className="form-input" value={item.condition} onChange={(event) => onUpdate(item.result.id, { condition: event.target.value })} placeholder="Condition / grade" />
-              )}
-              <div className="grid gap-2 sm:grid-cols-2">
-                <MiniUpload label="Owner photos" accept="image/jpeg,image/png,image/webp" onChange={(files) => onUpdate(item.result.id, { photoFiles: files.slice(0, 6) })} />
-                <MiniDocumentUpload onChange={(documents) => onUpdate(item.result.id, { documentFiles: documents })} />
-              </div>
-              <p className="text-[11px] leading-5 text-vault-faint">Default photo comes from the market match. Upload your own photos, receipt, or certificate to strengthen provenance.</p>
-            </div>
-          </article>
-        ))}
+        {picked.map((item) => <PickedPosition key={item.result.id} item={item} onRemove={onRemove} onUpdate={onUpdate} />)}
         {!picked.length ? <p className="rounded-[10px] border border-dashed border-vault-border p-4 text-sm leading-6 text-vault-muted">Search for real sold comps. Every result you pick appears here before it enters your portfolio.</p> : null}
       </div>
     </div>
+  );
+}
+
+function PickedPosition({ item, onRemove, onUpdate }: { item: PickedResult; onRemove: (id: string) => void; onUpdate: (id: string, patch: Partial<PickedResult>) => void }) {
+  const paid = Number(item.costBasis || 0);
+  const gain = item.result.price - paid;
+  const gainPct = paid > 0 ? gain / paid : null;
+
+  return (
+    <article className="rounded-[10px] border border-vault-border bg-vault-black p-3">
+      <div className="flex gap-3">
+        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md border border-vault-border bg-vault-surface">
+          {item.result.imageUrl ? <TrayImage src={item.result.imageUrl} alt="" /> : null}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="line-clamp-2 text-sm font-medium text-vault-text">{item.result.title}</p>
+          <p className="data mt-1 text-sm text-vault-gold">{currency.format(item.result.price)}</p>
+        </div>
+        <button onClick={() => onRemove(item.result.id)} className="self-start rounded border border-vault-border p-2 text-vault-muted transition hover:border-vault-red hover:text-vault-red" aria-label="Remove selected item">
+          <Trash2 size={14} />
+        </button>
+      </div>
+      <div className="mt-3 grid gap-2">
+        {item.result.priceOptions?.length ? (
+          <select
+            className="form-input"
+            value={item.result.pricechartingPriceField}
+            onChange={(event) => {
+              const option = item.result.priceOptions?.find((candidate) => candidate.field === event.target.value);
+              if (!option) return;
+              onUpdate(item.result.id, {
+                condition: option.label,
+                result: {
+                  ...item.result,
+                  price: option.value,
+                  condition: option.label,
+                  pricechartingPriceField: option.field,
+                  lastSalePrice: option.value
+                }
+              });
+            }}
+          >
+            {item.result.priceOptions.map((option) => <option key={option.field} value={option.field}>{option.label} · {currency.format(option.value)}</option>)}
+          </select>
+        ) : (
+          <input className="form-input" value={item.condition} onChange={(event) => onUpdate(item.result.id, { condition: event.target.value })} placeholder="Condition / grade" />
+        )}
+        <input className="form-input data" value={item.costBasis} onChange={(event) => onUpdate(item.result.id, { costBasis: event.target.value })} placeholder="What you paid" />
+        {item.costBasis ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className={`rounded-md border px-3 py-2 ${gain >= 0 ? "border-vault-green/25 bg-vault-green/10" : "border-vault-red/25 bg-vault-red/10"}`}>
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-vault-muted">Unrealized gain</span>
+              <span className={`data ${gain >= 0 ? "text-vault-green" : "text-vault-red"}`}>
+                {gain >= 0 ? "+" : "-"}{currency.format(Math.abs(gain))}{gainPct !== null ? ` (${gain >= 0 ? "+" : "-"}${Math.abs(gainPct * 100).toFixed(1)}%)` : ""}
+              </span>
+            </div>
+          </motion.div>
+        ) : null}
+        <input className="form-input data" type="date" value={item.acquiredDate} onChange={(event) => onUpdate(item.result.id, { acquiredDate: event.target.value })} />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <MiniUpload label="Owner photos" accept="image/jpeg,image/png,image/webp" onChange={(files) => onUpdate(item.result.id, { photoFiles: files.slice(0, 6) })} />
+          <MiniDocumentUpload onChange={(documents) => onUpdate(item.result.id, { documentFiles: documents })} />
+        </div>
+        <p className="text-[11px] leading-5 text-vault-faint">Condition prices come directly from PriceCharting guide fields. Upload owner photos, receipt, or certificate to strengthen provenance.</p>
+      </div>
+    </article>
   );
 }
 

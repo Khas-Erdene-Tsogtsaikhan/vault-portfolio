@@ -154,6 +154,8 @@ export async function updateSupabaseEstimate(itemId: string, value: number) {
   const now = new Date().toISOString();
   const { error } = await supabase.from("items").update({
     current_value_user: value,
+    current_value_market: null,
+    current_value_source: "Your estimate",
     current_value_updated_at: now,
     updated_at: now
   }).eq("id", itemId);
@@ -171,7 +173,7 @@ export async function updateSupabaseItemDetails(itemId: string, input: Partial<P
     ...(input.referenceNumber !== undefined ? { reference_number: input.referenceNumber ?? null } : {}),
     ...(input.condition !== undefined ? { condition: input.condition } : {}),
     ...(input.costBasis !== undefined ? { cost_basis: input.costBasis } : {}),
-    ...(input.currentValueUser !== undefined ? { current_value_user: input.currentValueUser, current_value_updated_at: now } : {}),
+    ...(input.currentValueUser !== undefined ? { current_value_user: input.currentValueUser, current_value_market: null, current_value_source: "Your estimate", current_value_updated_at: now } : {}),
     ...(input.acquiredDate !== undefined ? { acquired_date: input.acquiredDate } : {}),
     ...(input.acquiredFrom !== undefined ? { acquired_from: input.acquiredFrom ?? null } : {}),
     ...(input.notes !== undefined ? { notes: input.notes } : {}),
@@ -184,6 +186,8 @@ export async function updateSupabaseItemDetails(itemId: string, input: Partial<P
     const { error: historyError } = await supabase.from("price_history").insert({ item_id: itemId, value: input.currentValueUser, source: "user", recorded_at: now });
     if (historyError) throw historyError;
   }
+  const { data: row } = await supabase.from("items").select("user_id").eq("id", itemId).maybeSingle();
+  if (row?.user_id) await refreshProfileRollups(row.user_id);
 }
 
 export async function setSupabaseOpenToOffers(item: VaultItem, user: VaultUser, enabled: boolean, floorPrice?: number) {

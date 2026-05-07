@@ -25,17 +25,7 @@ export interface PriceChartingSearchDocument {
   last_synced_at: string;
 }
 
-const priceFieldLabels: Array<[string, string]> = [
-  ["loose-price", "Loose / Ungraded"],
-  ["cib-price", "CIB / Grade 7"],
-  ["new-price", "New / Sealed"],
-  ["graded-price", "Graded / PSA 9"],
-  ["manual-only-price", "PSA 10"],
-  ["box-only-price", "BGS 9.5 / Box Only"],
-  ["bgs-10-price", "BGS 10"],
-  ["condition-17-price", "CGC 10"],
-  ["condition-18-price", "SGC 10"]
-];
+const priceFields = ["loose-price", "cib-price", "new-price", "graded-price", "manual-only-price", "box-only-price", "bgs-10-price", "condition-17-price", "condition-18-price"];
 
 export function csvRowToSearchDocument(row: Record<string, string>, fallbackCategory?: string): PriceChartingSearchDocument | null {
   const pricechartingId = field(row, "id") || field(row, "pricecharting-id") || field(row, "product-id");
@@ -80,8 +70,8 @@ export function csvRowToSearchDocument(row: Record<string, string>, fallbackCate
 }
 
 export function searchDocumentToResult(document: PriceChartingSearchDocument, query = ""): MarketSearchResult | null {
-  const options = priceFieldLabels
-    .map(([fieldName, label]) => ({ field: fieldName, label, value: centsToDollars(document.price_fields[fieldName]) }))
+  const options = priceFields
+    .map((fieldName) => ({ field: fieldName, label: priceFieldLabel(fieldName, document), value: centsToDollars(document.price_fields[fieldName]) }))
     .filter((option) => option.value > 0);
   if (!options.length) return null;
 
@@ -113,6 +103,49 @@ export function searchDocumentToResult(document: PriceChartingSearchDocument, qu
     pricechartingPriceField: option.field,
     priceOptions: options
   };
+}
+
+export function priceFieldLabel(fieldName: string, product: Pick<PriceChartingSearchDocument, "category" | "console_name" | "product_name">) {
+  const category = normalizeCategory(product.category) ?? inferPriceChartingCategory({ "console-name": product.console_name, "product-name": product.product_name });
+  const isCard = category === "trading_cards";
+  const isVideoGame = category === "video_games";
+  if (isCard) {
+    const labels: Record<string, string> = {
+      "loose-price": "Raw / Ungraded",
+      "cib-price": "Grade 7",
+      "new-price": "Grade 8",
+      "graded-price": "Grade 9",
+      "manual-only-price": "PSA 10",
+      "box-only-price": "BGS 9.5",
+      "bgs-10-price": "BGS 10",
+      "condition-17-price": "CGC 10",
+      "condition-18-price": "SGC 10"
+    };
+    return labels[fieldName] ?? fieldName;
+  }
+  if (isVideoGame) {
+    const labels: Record<string, string> = {
+      "loose-price": "Loose",
+      "cib-price": "Complete in Box",
+      "new-price": "New / Sealed",
+      "graded-price": "Graded",
+      "box-only-price": "Box Only",
+      "manual-only-price": "Manual Only"
+    };
+    return labels[fieldName] ?? fieldName;
+  }
+  const fallback: Record<string, string> = {
+    "loose-price": "Loose / Ungraded",
+    "cib-price": "Complete / CIB",
+    "new-price": "New / Sealed",
+    "graded-price": "Graded",
+    "manual-only-price": "Manual / Premium Grade",
+    "box-only-price": "Box / Alternate Grade",
+    "bgs-10-price": "BGS 10",
+    "condition-17-price": "Condition 17",
+    "condition-18-price": "Condition 18"
+  };
+  return fallback[fieldName] ?? fieldName;
 }
 
 function collectPriceFields(row: Record<string, string>) {

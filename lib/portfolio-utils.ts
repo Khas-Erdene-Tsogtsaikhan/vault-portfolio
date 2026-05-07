@@ -204,18 +204,25 @@ export function getPortfolioHistory(items: VaultItem[]) {
   if (!items.length) {
     return ["Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May"].map((month, index) => ({ date: `2026-${String(Math.max(1, index + 1)).padStart(2, "0")}-01`, month, value: 0, sp500: 0 }));
   }
-  const now = new Date().toISOString();
-  const dates = Array.from(new Set([
-    ...items.flatMap((item) => item.priceHistory.map((point) => point.recordedAt)),
-    ...items.map((item) => item.currentValueUpdatedAt ?? item.updatedAt),
-    now
-  ])).sort();
+  const today = startOfDay(new Date());
+  const knownDates = items.flatMap((item) => [
+    item.acquiredDate,
+    item.createdAt,
+    item.currentValueUpdatedAt,
+    ...item.priceHistory.map((point) => point.recordedAt)
+  ]);
+  const earliestKnown = knownDates.reduce((earliest, value) => {
+    const date = startOfDay(new Date(value));
+    return date < earliest ? date : earliest;
+  }, today);
+  const start = earliestKnown >= today ? addDays(today, -30) : earliestKnown;
+  const dates = buildSampleDates(start, today);
   const costBasis = items.reduce((sum, item) => sum + item.costBasis, 0);
 
   return dates.map((date, index) => ({
-    date,
-    month: new Date(date).toLocaleDateString("en-US", { month: "short", day: dates.length > 12 ? undefined : "numeric" }),
-    value: items.reduce((sum, item) => sum + getItemValueAt(item, date), 0),
+    date: date.toISOString(),
+    month: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    value: items.reduce((sum, item) => sum + getItemValueAt(item, date.toISOString()), 0),
     sp500: costBasis * (1 + index * 0.011)
   }));
 }
@@ -292,10 +299,34 @@ function average(values: number[]) {
 }
 
 function getItemValueAt(item: VaultItem, date: string) {
+  const dateMs = startOfDay(new Date(date)).getTime();
+  const acquiredMs = startOfDay(new Date(item.acquiredDate || item.createdAt)).getTime();
+  if (dateMs < acquiredMs) return 0;
   const sorted = [...item.priceHistory].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
   const point = [...sorted].reverse().find((candidate) => candidate.recordedAt <= date);
   if (item.currentValueUpdatedAt <= date) return getCurrentValue(item);
   return point?.value ?? item.costBasis;
+}
+
+function buildSampleDates(start: Date, end: Date) {
+  const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000));
+  const step = days > 730 ? 14 : days > 180 ? 7 : 1;
+  const dates: Date[] = [];
+  for (let cursor = startOfDay(start); cursor <= end; cursor = addDays(cursor, step)) {
+    dates.push(cursor);
+  }
+  if (dates.at(-1)?.getTime() !== end.getTime()) dates.push(end);
+  return dates;
+}
+
+function startOfDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
 }
 
 function trimDecimal(value: number) {

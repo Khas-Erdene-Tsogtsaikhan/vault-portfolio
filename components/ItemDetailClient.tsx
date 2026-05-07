@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, FileText, FileUp, ImagePlus, Pencil, Save, Share2, Star, Trash2 } from "lucide-react";
-import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { ArrowLeft, Download, FileText, FileUp, ImagePlus, LayoutDashboard, Pencil, Save, Share2, Star, Trash2 } from "lucide-react";
+import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AssetImage } from "@/components/AssetImage";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/Badge";
@@ -83,6 +83,16 @@ export function ItemDetailClient({ id }: { id: string }) {
 
   return (
     <AppShell>
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <Link href="/collection" className="inline-flex items-center gap-2 rounded border border-vault-border bg-vault-card px-4 py-2 text-sm text-vault-text transition hover:border-vault-bright">
+          <ArrowLeft size={15} />
+          Back to Collection
+        </Link>
+        <Link href="/" className="inline-flex items-center gap-2 rounded border border-vault-border bg-vault-card px-4 py-2 text-sm text-vault-muted transition hover:border-vault-bright hover:text-vault-text">
+          <LayoutDashboard size={15} />
+          Dashboard
+        </Link>
+      </div>
       <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <div className="relative h-[520px] overflow-hidden rounded-lg border border-vault-border bg-vault-card">
@@ -217,17 +227,23 @@ export function ItemDetailClient({ id }: { id: string }) {
           </div>
           <div className="mt-5 h-72 rounded-md border border-vault-border bg-vault-black p-4">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 10, right: 16, bottom: 4, left: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 8, bottom: 4, left: 0 }}>
+                <defs>
+                  <linearGradient id="itemValueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#50c98a" stopOpacity={0.20} />
+                    <stop offset="85%" stopColor="#50c98a" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
                 <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} />
-                <YAxis hide domain={["dataMin - 2000", "dataMax + 2000"]} />
+                <YAxis orientation="right" tickLine={false} axisLine={false} width={68} domain={["dataMin - 2000", "dataMax + 2000"]} tick={{ fill: "#3e3c38", fontSize: 11, fontFamily: "DM Mono" }} tickFormatter={(value) => currency.format(Number(value)).replace(".00", "")} />
                 <Tooltip
                   cursor={{ stroke: "#2a2a3a" }}
                   contentStyle={{ background: "#111118", border: "1px solid #2a2a3a", borderRadius: 8, color: "#f0ece8" }}
                   formatter={(value: number, name: string) => [currency.format(value), name === "value" ? "Market value" : "Cost basis"]}
                 />
                 <ReferenceLine y={item.costBasis} stroke="#4a3d1a" strokeDasharray="4 4" />
-                <Line type="monotone" dataKey="value" stroke="#c9a84c" strokeWidth={3} dot={false} isAnimationActive animationDuration={1000} />
-              </LineChart>
+                <Area type="monotone" dataKey="value" stroke="#50c98a" fill="url(#itemValueGradient)" strokeWidth={3} dot={false} isAnimationActive animationDuration={900} animationEasing="ease-out" />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>

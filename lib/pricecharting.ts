@@ -43,17 +43,7 @@ let queue: Promise<unknown> = Promise.resolve();
 let lastCallAt = 0;
 const CACHE_VERSION = "pc-v5";
 
-const priceFields = [
-  ["loose-price", "Loose / Ungraded"],
-  ["cib-price", "CIB / Grade 7"],
-  ["new-price", "New / Sealed"],
-  ["graded-price", "Graded / PSA 9"],
-  ["manual-only-price", "PSA 10"],
-  ["box-only-price", "BGS 9.5 / Box Only"],
-  ["bgs-10-price", "BGS 10"],
-  ["condition-17-price", "CGC 10"],
-  ["condition-18-price", "SGC 10"]
-] as const;
+const priceFields = ["loose-price", "cib-price", "new-price", "graded-price", "manual-only-price", "box-only-price", "bgs-10-price", "condition-17-price", "condition-18-price"] as const;
 
 export function normalizePriceKey(value: string) {
   return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -134,12 +124,12 @@ export function choosePriceOption(product: PriceChartingProduct, query: string, 
 
 export function getPriceOptions(product: PriceChartingProduct) {
   return priceFields
-    .map(([field, label]) => ({ field, label, value: centsToDollars(product[field]) }))
+    .map((field) => ({ field, label: priceFieldLabelForProduct(field, product), value: centsToDollars(product[field]) }))
     .filter((option) => option.value > 0);
 }
 
 export function priceFieldLabel(field?: string) {
-  return priceFields.find(([candidate]) => candidate === field)?.[1] ?? "Guide Value";
+  return field ? priceFieldLabelForProduct(field, { "product-name": "", "console-name": "" }) : "Guide Value";
 }
 
 function productToResult(product: PriceChartingProduct, query: string, preferredField?: string): MarketSearchResult | null {
@@ -359,4 +349,45 @@ function numberOrNull(value: unknown) {
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function priceFieldLabelForProduct(field: string, product: Pick<PriceChartingProduct, "console-name" | "product-name">) {
+  const category = inferPriceChartingCategory(product);
+  if (category === "trading_cards") {
+    const labels: Record<string, string> = {
+      "loose-price": "Raw / Ungraded",
+      "cib-price": "Grade 7",
+      "new-price": "Grade 8",
+      "graded-price": "Grade 9",
+      "manual-only-price": "PSA 10",
+      "box-only-price": "BGS 9.5",
+      "bgs-10-price": "BGS 10",
+      "condition-17-price": "CGC 10",
+      "condition-18-price": "SGC 10"
+    };
+    return labels[field] ?? field;
+  }
+  if (category === "video_games") {
+    const labels: Record<string, string> = {
+      "loose-price": "Loose",
+      "cib-price": "Complete in Box",
+      "new-price": "New / Sealed",
+      "graded-price": "Graded",
+      "box-only-price": "Box Only",
+      "manual-only-price": "Manual Only"
+    };
+    return labels[field] ?? field;
+  }
+  const labels: Record<string, string> = {
+    "loose-price": "Loose / Ungraded",
+    "cib-price": "Complete / CIB",
+    "new-price": "New / Sealed",
+    "graded-price": "Graded",
+    "manual-only-price": "Manual / Premium Grade",
+    "box-only-price": "Box / Alternate Grade",
+    "bgs-10-price": "BGS 10",
+    "condition-17-price": "Condition 17",
+    "condition-18-price": "Condition 18"
+  };
+  return labels[field] ?? field;
 }
