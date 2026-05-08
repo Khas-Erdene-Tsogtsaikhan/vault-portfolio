@@ -226,6 +226,10 @@ function SearchPreparing({ status }: { status: "searching" | "pricing" | "idle" 
 
 function SearchResultImage({ src, alt }: { src: string; alt: string }) {
   const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    setFailed(false);
+  }, [src]);
+
   if (failed) return <TrendingUp className="m-5 text-vault-gold" />;
 
   // The source can be a dynamic local proxy route; using a plain image avoids Next optimizer 400s.

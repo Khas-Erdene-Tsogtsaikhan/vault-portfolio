@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { ImageOff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function isDisplayableImage(url?: string) {
   if (!url) return false;
@@ -16,11 +16,15 @@ export function AssetImage({ src, alt, fill = true, sizes = "100vw", className =
   const [failed, setFailed] = useState(false);
   const imageSrc = normalizeLegacyShareImageUrl(src);
 
+  useEffect(() => {
+    setFailed(false);
+  }, [imageSrc]);
+
   if (!isDisplayableImage(imageSrc)) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-vault-black text-center text-vault-muted">
         <ImageOff size={24} className="text-vault-gold" />
-        <span className="px-3 text-xs leading-5">HEIC proof stored. Upload JPG, PNG, or WebP for preview.</span>
+        <span className="px-3 text-xs leading-5">{src ? "Image preview unavailable. Upload JPG, PNG, or WebP for preview." : "Image preview pending."}</span>
       </div>
     );
   }

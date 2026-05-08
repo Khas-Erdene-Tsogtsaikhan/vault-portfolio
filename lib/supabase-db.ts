@@ -4,7 +4,7 @@ import type { User } from "@supabase/supabase-js";
 import { demoUser } from "@/lib/demo-data";
 import { storageBuckets, supabase } from "@/lib/supabase";
 import type { Category, Listing, NotificationEvent, NotificationPreferences, Offer, PortfolioSnapshot, PriceHistoryPoint, PushToken, VaultDocument, VaultItem, VaultPhoto, VaultUser, WatchlistItem } from "@/lib/types";
-import { getTier } from "@/lib/portfolio-utils";
+import { getTier, isDynamicImageResolverUrl } from "@/lib/portfolio-utils";
 import type { NewVaultItemInput } from "@/lib/vault-store";
 
 const fallbackImage = "https://images.unsplash.com/photo-1606760227091-3dd870d97f1d?auto=format&fit=crop&w=1200&q=80";
@@ -294,7 +294,7 @@ async function uploadPhotos(itemId: string, userId: string, files: File[], remot
   }
 
   const rows = [];
-  const remotePhotoUrls = remoteUrls.slice(0, 6);
+  const remotePhotoUrls = remoteUrls.filter((url) => !isDynamicImageResolverUrl(url)).slice(0, 6);
   for (let index = 0; index < remotePhotoUrls.length; index += 1) {
     const url = remotePhotoUrls[index];
     rows.push({ item_id: itemId, url, order: startOrder + index, is_primary: allowPrimary && index === 0 });
@@ -306,8 +306,8 @@ async function uploadPhotos(itemId: string, userId: string, files: File[], remot
     const { error } = await supabase.storage.from(storageBuckets.photos).upload(path, file, { upsert: false });
     if (error) throw error;
     const { data } = supabase.storage.from(storageBuckets.photos).getPublicUrl(path);
-    const order = startOrder + remoteUrls.length + index;
-    rows.push({ item_id: itemId, url: data.publicUrl, order, is_primary: allowPrimary && remoteUrls.length === 0 && index === 0 });
+    const order = startOrder + remotePhotoUrls.length + index;
+    rows.push({ item_id: itemId, url: data.publicUrl, order, is_primary: allowPrimary && remotePhotoUrls.length === 0 && index === 0 });
   }
   if (!rows.length) return [];
   const { data, error } = await supabase.from("photos").insert(rows).select("*");

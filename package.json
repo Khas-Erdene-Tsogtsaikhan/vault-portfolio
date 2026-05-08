@@ -17,7 +17,8 @@
     "refresh:daily": "tsx scripts/run-daily-refresh.ts",
     "email:daily": "tsx scripts/send-daily-emails.ts",
     "email:weekly": "tsx scripts/send-weekly-digest.ts",
-    "email:test": "tsx scripts/send-daily-emails.ts --dry-run"
+    "email:test": "tsx scripts/send-daily-emails.ts --dry-run",
+    "audit:images": "tsx scripts/audit-images.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",

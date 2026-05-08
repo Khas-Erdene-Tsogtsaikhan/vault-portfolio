@@ -19,6 +19,7 @@ import {
   getItemImageUrl,
   getItemReturn,
   getLiquidity,
+  isDynamicImageResolverUrl,
   percent,
   preciseCurrency
 } from "@/lib/portfolio-utils";
@@ -68,6 +69,7 @@ export function ItemDetailClient({ id }: { id: string }) {
   const galleryPhotos = [...item.photos].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.order - b.order);
   const activePhotoRecord = galleryPhotos[activePhoto];
   const fallbackImageUrl = getItemImageUrl(item);
+  const displayPhotoUrl = activePhotoRecord && !isDynamicImageResolverUrl(activePhotoRecord.url) ? activePhotoRecord.url : fallbackImageUrl;
   const chartData = item.priceHistory.map((point) => ({
     date: new Date(point.recordedAt).toLocaleDateString("en-US", { month: "short" }),
     value: point.value,
@@ -95,8 +97,8 @@ export function ItemDetailClient({ id }: { id: string }) {
       <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <div className="relative h-[520px] overflow-hidden rounded-lg border border-vault-border bg-vault-card">
-            {activePhotoRecord?.url || fallbackImageUrl ? (
-              <AssetImage src={activePhotoRecord?.url ?? fallbackImageUrl} alt={item.name} priority sizes="(min-width:1024px) 50vw, 100vw" />
+            {displayPhotoUrl ? (
+              <AssetImage src={displayPhotoUrl} alt={item.name} priority sizes="(min-width:1024px) 50vw, 100vw" />
             ) : (
               <div className="flex h-full items-center justify-center text-vault-muted">Upload the first owner photo</div>
             )}

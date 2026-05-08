@@ -106,10 +106,16 @@ async function ingestSource({
 }
 
 async function flushBatch(client: Meilisearch, index: ReturnType<Meilisearch["index"]>, batch: PriceChartingSearchDocument[]) {
-  const task = await index.addDocuments(batch, { primaryKey: "id" });
+  const task = await index.updateDocuments(batch.map(preserveExistingImageFields), { primaryKey: "id" });
   const completed = await client.tasks.waitForTask(task.taskUid, { timeout: 10 * 60 * 1000 });
   assertTaskSucceeded(completed, `document batch ${task.taskUid}`);
   return batch.length;
+}
+
+function preserveExistingImageFields(document: PriceChartingSearchDocument) {
+  if (document.image_url) return document;
+  const { image_url, image_source, ...safeDocument } = document;
+  return safeDocument;
 }
 
 function assertTaskSucceeded(task: Task, label: string) {

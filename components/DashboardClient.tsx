@@ -30,6 +30,13 @@ import { useVaultStore } from "@/lib/vault-store";
 
 const ranges = ["1D", "1W", "1M", "3M", "YTD", "ALL"] as const;
 
+const phantomHoldings = [
+  { name: "Mew ex PSA 10", meta: "Trading Cards - PriceCharting Guide", value: 4200, weight: 82 },
+  { name: "Sealed Booster Box", meta: "Pokemon - Factory Sealed", value: 2850, weight: 56 },
+  { name: "Vintage Game CIB", meta: "Video Games - Complete in Box", value: 1790, weight: 35 },
+  { name: "Signed Comic #1", meta: "Comics - Graded", value: 980, weight: 19 }
+];
+
 export function DashboardClient() {
   const items = useVaultStore((state) => state.items);
   const portfolioSnapshots = useVaultStore((state) => state.portfolioSnapshots);
@@ -40,6 +47,8 @@ export function DashboardClient() {
   const [heroAnimating, setHeroAnimating] = useState(false);
   const metrics = getPortfolioMetrics(items);
   const rangeHistory = useMemo(() => buildPortfolioTimeline(items, portfolioSnapshots, range), [items, portfolioSnapshots, range]);
+  const phantomHistory = useMemo(() => buildPhantomPortfolioTimeline(range), [range]);
+  const phantomMove = getRangeMove(phantomHistory);
   const rangeMove = getRangeMove(rangeHistory);
   const trustSummary = getPortfolioTrustSummary(items);
   const bestReturn = getItemReturn(metrics.bestPerformer);
@@ -61,28 +70,96 @@ export function DashboardClient() {
   if (!items.length) {
     return (
       <AppShell>
-        <section className="vault-hero rounded-[14px] border border-vault-gold-dim p-8 sm:p-12">
-          <p className="hero-label">Your First Vault Position</p>
-          <h1 className="mt-3 max-w-4xl font-serif text-6xl font-light leading-none text-vault-text sm:text-7xl">Every serious portfolio starts with one documented asset.</h1>
-          <p className="mt-5 max-w-2xl text-sm leading-7 text-vault-muted">Search sold comps, add your cost basis, and attach owner proof. Once the first asset lands here, VAULT starts tracking your physical wealth like a financial terminal.</p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-[10px] border border-vault-border bg-vault-card p-4">
-              <p className="section-label">Step 1</p>
-              <p className="mt-2 text-sm text-vault-text">Search market value</p>
+        <section className="vault-hero mb-7 overflow-hidden rounded-[14px] border border-vault-gold-dim p-8 sm:p-11 lg:p-12">
+          <div className="relative z-10">
+            <div className="flex flex-col justify-between gap-6 sm:flex-row">
+              <div>
+                <p className="hero-label"><span className="live-dot opacity-40" />Preview Portfolio</p>
+                <h1 className="mt-2 max-w-4xl font-serif text-[46px] font-light leading-none text-vault-text/45 sm:text-[72px]">
+                  {preciseCurrency.format(12840)}
+                </h1>
+                <div className="mt-2 inline-flex items-center gap-2 rounded border border-vault-green/10 bg-vault-green/5 px-3 py-1.5 font-mono text-[13px] text-vault-green/55">
+                  +{preciseCurrency.format(phantomMove.delta)} ({percent.format(phantomMove.deltaPct)}) {range}
+                </div>
+                <p className="mt-3 max-w-2xl text-xs leading-5 text-vault-muted">
+                  Preview mode. These numbers are sample projections only. Add one real asset and this dashboard becomes your live Vault.
+                </p>
+              </div>
+              <Link href="/add" className="inline-flex h-10 items-center justify-center gap-2 rounded bg-vault-gold px-5 text-xs font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light">
+                <Plus size={15} />
+                Add First Asset
+              </Link>
             </div>
-            <div className="rounded-[10px] border border-vault-border bg-vault-card p-4">
-              <p className="section-label">Step 2</p>
-              <p className="mt-2 text-sm text-vault-text">Add what you paid</p>
-            </div>
-            <div className="rounded-[10px] border border-vault-border bg-vault-card p-4">
-              <p className="section-label">Step 3</p>
-              <p className="mt-2 text-sm text-vault-text">Attach proof</p>
+
+            <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_360px]">
+              <div className="rounded-[12px] border border-vault-border/70 bg-vault-black/70 p-4 opacity-75">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="section-label">Phantom Performance</p>
+                    <p className="mt-1 text-sm text-vault-text/50">A sample of what your portfolio timeline will feel like.</p>
+                  </div>
+                  <div className="flex rounded border border-vault-border bg-vault-black p-1">
+                    {ranges.map((item) => (
+                      <button key={item} onClick={() => setRange(item)} className={`rounded px-3 py-2 font-mono text-[11px] transition ${range === item ? "bg-vault-gold/35 text-vault-text" : "text-vault-faint hover:text-vault-muted"}`}>
+                        {item}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="h-[320px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={phantomHistory} margin={{ top: 14, right: 10, bottom: 8, left: 0 }}>
+                      <defs>
+                        <linearGradient id="phantomValueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#50c98a" stopOpacity={0.12} />
+                          <stop offset="85%" stopColor="#50c98a" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis
+                        dataKey="date"
+                        interval={getXAxisInterval(phantomHistory.length)}
+                        minTickGap={34}
+                        tickFormatter={(value) => formatAxisLabel(new Date(value), range)}
+                        tickLine={false}
+                        axisLine={false}
+                        tick={{ fill: "rgba(240,236,232,0.22)", fontSize: 11, fontFamily: "DM Mono" }}
+                      />
+                      <YAxis orientation="right" tickLine={false} axisLine={false} width={72} domain={portfolioValueDomain} tick={{ fill: "rgba(240,236,232,0.22)", fontSize: 11, fontFamily: "DM Mono" }} tickFormatter={(value) => compactCurrency.format(Number(value))} />
+                      <Tooltip
+                        cursor={{ stroke: "rgba(201,168,76,0.18)" }}
+                        contentStyle={{ background: "#111118", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "#f0ece8" }}
+                        formatter={(value: number) => [currency.format(value), "Sample Vault"]}
+                        labelFormatter={(value) => formatTooltipLabel(new Date(value))}
+                      />
+                      <Area type="monotone" dataKey="value" stroke="rgba(80,201,138,0.58)" fill="url(#phantomValueGradient)" strokeWidth={3} dot={false} activeDot={{ r: 4, stroke: "#f0ece8", strokeWidth: 1 }} strokeDasharray="7 7" isAnimationActive animationDuration={900} animationEasing="ease-out" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-vault-faint">Preview data only - real tracking starts with your first item</p>
+              </div>
+
+              <div className="grid gap-3">
+                {phantomHoldings.map((item) => (
+                  <div key={item.name} className="rounded-[10px] border border-vault-border/70 bg-vault-card/55 p-4 opacity-70">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-medium text-vault-text/60">{item.name}</p>
+                        <p className="mt-1 text-[11px] text-vault-faint">{item.meta}</p>
+                      </div>
+                      <p className="data text-sm text-vault-gold/60">{currency.format(item.value)}</p>
+                    </div>
+                    <div className="mt-3 h-1.5 rounded-full bg-vault-black">
+                      <div className="h-full rounded-full bg-vault-green/35" style={{ width: `${item.weight}%` }} />
+                    </div>
+                  </div>
+                ))}
+                <div className="rounded-[10px] border border-dashed border-vault-gold/25 bg-vault-gold/5 p-4">
+                  <p className="section-label">How It Activates</p>
+                  <p className="mt-2 text-sm leading-6 text-vault-muted">Search PriceCharting, choose a guide value, add what you paid, and the phantom chart is replaced by your real portfolio.</p>
+                </div>
+              </div>
             </div>
           </div>
-          <Link href="/add" className="mt-8 inline-flex items-center gap-2 rounded bg-vault-gold px-5 py-3 text-sm font-semibold text-vault-black transition hover:bg-vault-gold-light">
-            <Plus size={16} />
-            Add First Asset
-          </Link>
         </section>
       </AppShell>
     );
@@ -374,6 +451,39 @@ function buildPortfolioTimeline(items: VaultItem[], snapshots: PortfolioSnapshot
       sp500: value * (1 + index * 0.002)
     };
   });
+}
+
+function buildPhantomPortfolioTimeline(range: (typeof ranges)[number]) {
+  const now = new Date();
+  const start = getPhantomRangeStart(range, now);
+  const pointCount = range === "1D" ? 24 : range === "1W" ? 28 : range === "1M" ? 30 : range === "3M" ? 42 : range === "YTD" ? 48 : 56;
+  const span = Math.max(1, now.getTime() - start.getTime());
+  const base = 7800;
+  const end = 12840;
+
+  return Array.from({ length: pointCount }, (_, index) => {
+    const progress = index / (pointCount - 1);
+    const curve = 1 - Math.pow(1 - progress, 1.75);
+    const wave = Math.sin(progress * Math.PI * 4) * 180 + Math.cos(progress * Math.PI * 7) * 90;
+    const value = Math.max(0, base + (end - base) * curve + wave);
+    const date = new Date(start.getTime() + span * progress);
+    return {
+      date: date.toISOString(),
+      value: Math.round(value),
+      sp500: Math.round(value * (0.94 + progress * 0.04))
+    };
+  });
+}
+
+function getPhantomRangeStart(range: (typeof ranges)[number], now: Date) {
+  const start = new Date(now);
+  if (range === "1D") start.setDate(now.getDate() - 1);
+  else if (range === "1W") start.setDate(now.getDate() - 7);
+  else if (range === "1M") start.setMonth(now.getMonth() - 1);
+  else if (range === "3M") start.setMonth(now.getMonth() - 3);
+  else if (range === "YTD") return new Date(now.getFullYear(), 0, 1);
+  else start.setFullYear(now.getFullYear() - 1);
+  return start;
 }
 
 function getRangeMove(history: Array<{ value: number }>) {

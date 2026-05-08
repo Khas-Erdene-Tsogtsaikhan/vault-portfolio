@@ -92,7 +92,7 @@ export function getPrimaryPhoto(photos: VaultPhoto[]) {
 }
 
 export function getItemImageUrl(item: VaultItem) {
-  const primaryUrl = normalizeLegacyShareImageUrl(getPrimaryPhoto(item.photos)?.url);
+  const primaryUrl = normalizeLegacyShareImageUrl(getStablePrimaryPhoto(item.photos)?.url);
   if (primaryUrl) return primaryUrl;
   if (!item.pricechartingId && !item.pricechartingConsole) return undefined;
 
@@ -101,6 +101,24 @@ export function getItemImageUrl(item: VaultItem) {
     console: item.pricechartingConsole || item.brand || "PriceCharting"
   });
   return `/api/market/image?${params.toString()}`;
+}
+
+export function getStablePrimaryPhoto(photos: VaultPhoto[]) {
+  return photos.find((photo) => photo.isPrimary && isStablePhotoUrl(photo.url))
+    ?? photos.find((photo) => isStablePhotoUrl(photo.url))
+    ?? photos.find((photo) => Boolean(normalizeLegacyShareImageUrl(photo.url)));
+}
+
+export function isStablePhotoUrl(url?: string) {
+  const normalized = normalizeLegacyShareImageUrl(url);
+  if (!normalized) return false;
+  if (isDynamicImageResolverUrl(normalized)) return false;
+  return normalized.startsWith("http") || normalized.startsWith("/");
+}
+
+export function isDynamicImageResolverUrl(url?: string) {
+  if (!url) return false;
+  return url.includes("/api/market/image") || url.includes("/api/share/image");
 }
 
 export function getItemReturn(item: VaultItem) {
