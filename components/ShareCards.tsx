@@ -87,13 +87,20 @@ function ShareCardModal({ mode, item, items, onClose }: { mode: ShareMode; item?
       await document.fonts.ready;
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(cardRef.current, {
-        scale: mode === "item" ? 3 : 2,
+        scale: 3,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#07070a",
         logging: false,
         imageTimeout: 20000,
-        removeContainer: true
+        removeContainer: true,
+        onclone: (clonedDoc) => {
+          clonedDoc.querySelectorAll("img").forEach((image) => {
+            const source = image.getAttribute("src") ?? "";
+            if (!source || source.includes("/api/share/image") || source.startsWith("data:") || source.startsWith("/placeholders/")) return;
+            if (source.startsWith("http")) image.setAttribute("src", `/api/share/image?url=${encodeURIComponent(source)}`);
+          });
+        }
       });
       const link = document.createElement("a");
       link.download = mode === "item" && item
@@ -107,10 +114,10 @@ function ShareCardModal({ mode, item, items, onClose }: { mode: ShareMode; item?
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/82 p-3 backdrop-blur-xl">
-      <div className="grid max-h-[94vh] w-full max-w-7xl overflow-hidden rounded-xl border border-vault-border bg-[#08080b] shadow-2xl lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-h-0 overflow-auto p-4 sm:p-6">
-          <div className="mx-auto w-fit origin-top scale-[0.42] sm:scale-[0.52] xl:scale-[0.68]">
+    <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/82 p-3 backdrop-blur-xl">
+      <div className="mx-auto grid min-h-[90vh] w-full max-w-7xl overflow-hidden rounded-xl border border-vault-border bg-[#08080b] shadow-2xl lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-h-[650px] items-start justify-center overflow-auto bg-[#050508] p-6 sm:p-10">
+          <div className={`mx-auto w-fit origin-top ${mode === "item" ? "scale-[1.35] sm:scale-[1.55] lg:scale-[1.7]" : format === "portfolio" ? "scale-[0.42] sm:scale-[0.52] xl:scale-[0.68]" : "scale-[0.50] sm:scale-[0.62] xl:scale-[0.78]"}`}>
             <div ref={cardRef}>
               {mode === "item" && item
                 ? <SingleLotCard item={item} />
@@ -131,6 +138,7 @@ function ShareCardModal({ mode, item, items, onClose }: { mode: ShareMode; item?
             </button>
           </div>
           <p className="mt-4 text-sm leading-6 text-vault-muted">Editorial export cards with same-origin image proxying so real item photos render into the PNG.</p>
+          <p className="mt-2 rounded border border-vault-border bg-vault-black px-3 py-2 font-mono text-[10px] uppercase tracking-[0.12em] text-vault-faint">Preview scaled · export renders at 3x</p>
           {mode === "collection" ? (
             <div className="mt-5 grid grid-cols-2 gap-2 rounded-lg border border-vault-border bg-vault-black p-1">
               <button onClick={() => setFormat("portfolio")} className={`rounded px-3 py-2 text-xs font-semibold ${format === "portfolio" ? "bg-vault-gold text-vault-black" : "text-vault-muted"}`}>Portfolio</button>
@@ -153,6 +161,7 @@ function SingleLotCard({ item }: { item: VaultItem }) {
   const value = getCurrentValue(item);
   const itemReturn = getItemReturn(item);
   const image = getPrimaryPhoto(item.photos)?.url;
+  const showReturn = shouldShowReturn(item);
 
   return (
     <div className="share-export relative h-[420px] w-[405px] overflow-hidden border-l border-[#c9a84c]/45 bg-[#07070a] text-[#f0ece8]">
@@ -167,24 +176,24 @@ function SingleLotCard({ item }: { item: VaultItem }) {
       </div>
 
       <div className="absolute bottom-20 left-6 right-6">
-        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[rgba(201,168,76,0.45)]">{categoryLabel(item.category)} / {item.brand || "Vault"}</p>
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-[rgba(201,168,76,0.45)]">{categoryLabel(item.category)} / {cleanSubtitle(item)}</p>
         <h2 className="mt-3 font-serif text-[25px] font-semibold leading-none text-white">{item.name}</h2>
-        <p className="mt-2 truncate text-[14px] text-[rgba(240,236,232,0.42)]">{item.referenceNumber || item.pricechartingConsole || "Catalogued Asset"}</p>
-        <div className="mt-5 grid grid-cols-2 gap-5 border-t border-white/10 pt-4">
+        <p className="mt-2 truncate text-[14px] text-[rgba(240,236,232,0.42)]">{cleanSubtitle(item, true)}</p>
+        <div className={`mt-5 grid ${showReturn ? "grid-cols-2" : "grid-cols-1"} gap-5 border-t border-white/10 pt-4`}>
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[rgba(240,236,232,0.28)]">Value</p>
             <p className="mt-1 font-mono text-[18px] text-[#c9a84c]">{currency.format(value)}</p>
           </div>
-          <div>
+          {showReturn ? <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[rgba(240,236,232,0.28)]">Return</p>
             <p className="mt-1 font-mono text-[18px] text-[#2e9e5b]">{itemReturn.amount >= 0 ? "+" : ""}{percent.format(itemReturn.percentage)}</p>
-          </div>
+          </div> : null}
         </div>
       </div>
 
       <div className="absolute bottom-5 left-6">
         <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-[rgba(240,236,232,0.28)]">Condition</p>
-        <p className="mt-1 text-[14px] font-semibold text-white">{item.condition || "In Vault"}</p>
+        <p className="mt-1 text-[14px] font-semibold text-white">{conditionLabel(item)}</p>
       </div>
       <div className="absolute bottom-6 right-8 font-serif text-[13px] uppercase tracking-[0.24em] text-[#c9a84c]">Vault</div>
     </div>
@@ -197,6 +206,7 @@ function PortfolioCatalogCard({ items }: { items: VaultItem[] }) {
   const crown = topItems[0];
   const rest = topItems.slice(1, 7);
   const bestReturn = getItemReturn(metrics.bestPerformer);
+  const showBestReturn = shouldShowReturn(metrics.bestPerformer);
   const topCategory = getCategoryBreakdown(items)[0];
   const tier = getTier(metrics.totalValue);
 
@@ -214,14 +224,14 @@ function PortfolioCatalogCard({ items }: { items: VaultItem[] }) {
           <div className="text-right">
             <p className="font-mono text-[13px] uppercase tracking-[0.18em] text-[rgba(240,236,232,0.28)]">Portfolio Value</p>
             <p className="mt-4 font-serif text-[66px] leading-none"><span className="text-[rgba(240,236,232,0.22)]">$</span>{Math.round(metrics.totalValue).toLocaleString("en-US")}</p>
-            <p className="mt-4 inline-flex rounded-full bg-[#2e9e5b]/15 px-4 py-2 font-mono text-[14px] text-[#2e9e5b]">+ {currency.format(Math.max(0, metrics.totalReturn))} / {percent.format(Math.max(0, metrics.totalReturnPercent))} all time</p>
+            {metrics.totalReturn > 0 && metrics.costBasis > 0 ? <p className="mt-4 inline-flex rounded-full bg-[#2e9e5b]/15 px-4 py-2 font-mono text-[14px] text-[#2e9e5b]">+ {currency.format(metrics.totalReturn)} / {percent.format(metrics.totalReturnPercent)} all time</p> : null}
           </div>
         </header>
 
         <section className="grid grid-cols-4 border-b border-white/10">
-          <CatalogStat label="Best Return" value={percent.format(Math.max(0, bestReturn.percentage))} detail={metrics.bestPerformer.name} green />
-          <CatalogStat label="Total Paid" value={currency.format(metrics.costBasis)} detail="cost basis" />
-          <CatalogStat label="Unrealized" value={currency.format(Math.max(0, metrics.totalReturn))} detail="gain on paper" green />
+          <CatalogStat label="Best Return" value={showBestReturn ? percent.format(bestReturn.percentage) : "Tracking"} detail={metrics.bestPerformer.name} green={showBestReturn} />
+          <CatalogStat label="Total Paid" value={metrics.costBasis > 0 ? currency.format(metrics.costBasis) : "Private"} detail="cost basis" />
+          <CatalogStat label="Unrealized" value={metrics.totalReturn > 0 ? currency.format(metrics.totalReturn) : "Tracking"} detail="gain on paper" green={metrics.totalReturn > 0} />
           <CatalogStat label="Collector Tier" value={tier} detail={`top ${Math.max(1, Math.round(100 - metrics.percentile))}%`} gold />
         </section>
 
@@ -234,7 +244,7 @@ function PortfolioCatalogCard({ items }: { items: VaultItem[] }) {
               </div>
               <div>
                 <h2 className="font-sans text-[25px] font-bold">{crown.name}</h2>
-                <p className="mt-2 text-[15px] text-[rgba(240,236,232,0.36)]">{crown.brand || categoryLabel(crown.category)} / {crown.condition}</p>
+                <p className="mt-2 text-[15px] text-[rgba(240,236,232,0.36)]">{cleanSubtitle(crown)} / {conditionLabel(crown)}</p>
                 <div className="mt-5 flex gap-3">
                   <BadgeText label="All Time High" gold />
                   <BadgeText label="Best Performer" />
@@ -242,8 +252,8 @@ function PortfolioCatalogCard({ items }: { items: VaultItem[] }) {
               </div>
               <div className="text-right">
                 <p className="font-mono text-[30px] text-white">{currency.format(getCurrentValue(crown))}</p>
-                <p className="mt-2 font-mono text-[15px] text-[#2e9e5b]">+{currency.format(Math.max(0, getItemReturn(crown).amount))} / {percent.format(Math.max(0, getItemReturn(crown).percentage))}</p>
-                <p className="mt-2 text-[13px] text-[rgba(240,236,232,0.35)]">paid {currency.format(crown.costBasis)}</p>
+                {shouldShowReturn(crown) ? <p className="mt-2 font-mono text-[15px] text-[#2e9e5b]">+{currency.format(Math.max(0, getItemReturn(crown).amount))} / {percent.format(getItemReturn(crown).percentage)}</p> : null}
+                {crown.costBasis > 0 ? <p className="mt-2 text-[13px] text-[rgba(240,236,232,0.35)]">paid {currency.format(crown.costBasis)}</p> : null}
               </div>
             </div>
           </section>
@@ -309,6 +319,7 @@ function MuseumCatalogCard({ items }: { items: VaultItem[] }) {
 function PortfolioTile({ item }: { item: VaultItem }) {
   const photo = getPrimaryPhoto(item.photos)?.url;
   const itemReturn = getItemReturn(item);
+  const showReturn = shouldShowReturn(item);
   return (
     <article className="h-[290px] overflow-hidden rounded-xl border border-white/10 bg-[#111118] p-4">
       <div className="relative flex h-[165px] items-center justify-center overflow-hidden rounded-lg bg-[#0c0b12]">
@@ -316,7 +327,7 @@ function PortfolioTile({ item }: { item: VaultItem }) {
       </div>
       <p className="mt-5 truncate text-[15px] font-semibold text-[rgba(240,236,232,0.72)]">{item.name}</p>
       <p className="mt-2 font-mono text-[18px] text-[#c9a84c]">{currency.format(getCurrentValue(item))}</p>
-      <p className="mt-1 font-mono text-[12px] text-[#2e9e5b]">+{currency.format(Math.max(0, itemReturn.amount))} / {percent.format(Math.max(0, itemReturn.percentage))}</p>
+      {showReturn ? <p className="mt-1 font-mono text-[12px] text-[#2e9e5b]">+{currency.format(Math.max(0, itemReturn.amount))} / {percent.format(itemReturn.percentage)}</p> : <p className="mt-1 font-mono text-[12px] text-[rgba(240,236,232,0.28)]">{conditionLabel(item)}</p>}
     </article>
   );
 }
@@ -334,7 +345,7 @@ function MuseumTile({ item, index, featured }: { item: VaultItem; index: number;
       </div>
       <div className="absolute bottom-4 left-5 right-5">
         <p className="font-serif text-[16px] leading-tight text-white">{item.name}</p>
-        <p className="mt-1 truncate text-[11px] text-[rgba(240,236,232,0.38)]">{item.condition || categoryLabel(item.category)}</p>
+        <p className="mt-1 truncate text-[11px] text-[rgba(240,236,232,0.38)]">{conditionLabel(item)}</p>
         <p className="mt-1 font-mono text-[12px] text-[#2e9e5b]">{currency.format(getCurrentValue(item))}</p>
       </div>
     </article>
@@ -365,9 +376,10 @@ function BadgeText({ label, gold = false }: { label: string; gold?: boolean }) {
 }
 
 function ExportImage({ src, alt }: { src?: string; alt: string }) {
-  if (!src) return <IconFallback label="VA" />;
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <img src="/placeholders/card.svg" alt="" className="h-full w-full object-contain p-2" />;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={shareImageSrc(src)} alt={alt} crossOrigin="anonymous" className="h-full w-full object-contain p-2" />;
+  return <img src={shareImageSrc(src)} alt={alt} crossOrigin="anonymous" className="h-full w-full object-contain p-2" onError={() => setFailed(true)} />;
 }
 
 function IconFallback({ label }: { label: string }) {
@@ -393,6 +405,43 @@ function shareImageSrc(src: string) {
   if (src.startsWith("/api/")) return src;
   if (src.startsWith("/")) return src;
   return `/api/share/image?url=${encodeURIComponent(src)}`;
+}
+
+function shouldShowReturn(item: VaultItem) {
+  return item.costBasis > 0 && getCurrentValue(item) > 0 && Math.abs(getItemReturn(item).percentage) > 0.001;
+}
+
+function cleanSubtitle(item: VaultItem, includeYear = false) {
+  const candidates = [
+    item.pricechartingConsole,
+    item.brand,
+    item.referenceNumber,
+    categoryLabel(item.category)
+  ].filter(Boolean) as string[];
+  const clean = candidates.find((value) => !/pricecharting|loose-price|graded-price|cib-price|new-price/i.test(value));
+  const base = clean || "Collectible";
+  if (!includeYear) return base;
+  const year = item.acquiredDate ? new Date(item.acquiredDate).getFullYear() : undefined;
+  return year && Number.isFinite(year) ? `${base} / ${year}` : base;
+}
+
+function conditionLabel(item: VaultItem) {
+  if (item.condition && !/pricecharting-|loose-price|graded-price|cib-price|new-price|manual-only-price/i.test(item.condition)) {
+    return item.condition;
+  }
+  const field = item.pricechartingPriceField ?? "";
+  const labels: Record<string, string> = {
+    "loose-price": "Raw / Ungraded",
+    "cib-price": "Complete in Box",
+    "new-price": "Factory Sealed",
+    "graded-price": "Graded",
+    "manual-only-price": "PSA 10",
+    "box-only-price": "Box Only",
+    "bgs-10-price": "BGS 10",
+    "condition-17-price": "CGC 10",
+    "condition-18-price": "SGC 10"
+  };
+  return labels[field] || "Catalogued Asset";
 }
 
 function firstYear(items: VaultItem[]) {
