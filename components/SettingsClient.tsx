@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Mail, Play, Smartphone } from "lucide-react";
+import { Mail } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { buildWeeklyDigest, defaultNotificationPrefs } from "@/lib/notifications";
 import { currency, getItemDailyDelta } from "@/lib/portfolio-utils";
@@ -11,11 +11,8 @@ export function SettingsClient() {
   const user = useVaultStore((state) => state.user);
   const items = useVaultStore((state) => state.items);
   const prefs = useVaultStore((state) => state.notificationPrefs ?? defaultNotificationPrefs);
-  const pushTokens = useVaultStore((state) => state.pushTokens ?? []);
   const events = useVaultStore((state) => state.notificationEvents ?? []);
   const updateNotificationPrefs = useVaultStore((state) => state.updateNotificationPrefs);
-  const enableWebPush = useVaultStore((state) => state.enableWebPush);
-  const runNotificationChecks = useVaultStore((state) => state.runNotificationChecks);
   const markNotificationRead = useVaultStore((state) => state.markNotificationRead);
   const digest = buildWeeklyDigest(user, items);
 
@@ -24,25 +21,11 @@ export function SettingsClient() {
       <section className="mb-8">
         <p className="section-label">Settings</p>
         <h1 className="mt-3 font-serif text-6xl font-light text-vault-text">Control the rhythm of your Vault.</h1>
-        <p className="mt-4 max-w-2xl text-vault-muted">Web notifications and email-ready digests keep VAULT alive after the portfolio is catalogued.</p>
+        <p className="mt-4 max-w-2xl text-vault-muted">Tune alerts, digest timing, and the way your collection checks in with you.</p>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1fr_430px]">
         <div className="space-y-6">
-          <div className="vault-panel rounded-lg p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="section-label">Web Push</p>
-                <h2 className="mt-2 text-2xl font-semibold text-vault-text">Browser notification channel</h2>
-                <p className="mt-2 text-sm leading-6 text-vault-muted">This stores a web push token placeholder now. VAPID/service-worker delivery can plug into the same token table later.</p>
-              </div>
-              <button onClick={enableWebPush} className="rounded bg-vault-gold px-4 py-2 text-xs font-semibold text-vault-black">
-                {pushTokens.length ? "Enabled" : "Enable"}
-              </button>
-            </div>
-            <p className="mt-4 flex items-center gap-2 text-xs text-vault-muted"><Smartphone size={14} className="text-vault-gold" />{pushTokens.length ? `${pushTokens.length} web token stored` : "No web token stored yet"}</p>
-          </div>
-
           <div className="vault-panel rounded-lg p-5">
             <p className="section-label">Notification Preferences</p>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
@@ -59,17 +42,6 @@ export function SettingsClient() {
               <TimePref label="Quiet hours start" value={prefs.quietHoursStart} onChange={(value) => updateNotificationPrefs({ quietHoursStart: value })} />
               <TimePref label="Quiet hours end" value={prefs.quietHoursEnd} onChange={(value) => updateNotificationPrefs({ quietHoursEnd: value })} />
             </div>
-          </div>
-
-          <div className="vault-panel rounded-lg p-5">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <p className="section-label">Notification Job</p>
-                <h2 className="mt-2 text-2xl font-semibold text-vault-text">Run post-price-refresh checks</h2>
-              </div>
-              <button onClick={runNotificationChecks} className="inline-flex items-center gap-2 rounded border border-vault-border px-4 py-2 text-xs text-vault-text hover:border-vault-bright"><Play size={14} />Run checks</button>
-            </div>
-            <p className="mt-3 text-sm leading-6 text-vault-muted">Mirrors the BullMQ chain: ATH, significant moves, offers, milestones, quiet hours, and daily rate limits.</p>
           </div>
         </div>
 
