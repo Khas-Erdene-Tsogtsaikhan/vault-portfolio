@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Download, FileText, FileUp, ImagePlus, LayoutDashboard, Pencil, Save, Star, Trash2 } from "lucide-react";
 import { Area, AreaChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { AssetImage } from "@/components/AssetImage";
 import { AppShell } from "@/components/AppShell";
 import { Badge } from "@/components/Badge";
-import { ShareCardTrigger } from "@/components/ShareCards";
+import { OpenToOffersControl } from "@/components/OpenToOffersControl";
 import {
   categoryLabel,
   currency,
@@ -18,7 +18,6 @@ import {
   getItemHighLow,
   getItemReturn,
   getLiquidity,
-  getPrimaryPhoto,
   percent,
   preciseCurrency
 } from "@/lib/portfolio-utils";
@@ -50,7 +49,6 @@ export function ItemDetailClient({ id }: { id: string }) {
     story: item?.story ?? ""
   });
   const [proofToast, setProofToast] = useState("");
-  const shareText = useMemo(() => item ? `${item.name}: ${currency.format(item.costBasis)} to ${currency.format(getCurrentValue(item))} (${percent.format(getItemReturn(item).percentage)})` : "", [item]);
 
   if (!item) {
     return (
@@ -68,7 +66,6 @@ export function ItemDetailClient({ id }: { id: string }) {
   const highLow = getItemHighLow(item);
   const galleryPhotos = [...item.photos].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.order - b.order);
   const activePhotoRecord = galleryPhotos[activePhoto];
-  const primaryPhoto = getPrimaryPhoto(item.photos);
   const chartData = item.priceHistory.map((point) => ({
     date: new Date(point.recordedAt).toLocaleDateString("en-US", { month: "short" }),
     value: point.value,
@@ -191,6 +188,10 @@ export function ItemDetailClient({ id }: { id: string }) {
             <p className="mt-3 text-xs text-vault-muted">{item.currentValueSource} · updated {new Date(item.currentValueUpdatedAt).toLocaleString()}</p>
           </div>
 
+          <div className="mt-4">
+            <OpenToOffersControl item={item} />
+          </div>
+
           <div className="mt-6 rounded-md border border-vault-red/25 bg-vault-red/5 p-4">
             <p className="section-label">Remove Asset</p>
             <p className="mt-2 text-xs leading-5 text-vault-muted">Deletes this item from your collection view and removes its attached portfolio record.</p>
@@ -210,7 +211,7 @@ export function ItemDetailClient({ id }: { id: string }) {
         </div>
       </section>
 
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      <section className="mt-6">
         <div className="vault-panel rounded-lg p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -244,19 +245,6 @@ export function ItemDetailClient({ id }: { id: string }) {
           </div>
         </div>
 
-        <div className="vault-panel rounded-lg p-5">
-          <p className="section-label">Share Card Generator</p>
-          <div className="mt-4 aspect-square rounded-lg border border-vault-border bg-vault-black p-4">
-            <div className="relative h-40 overflow-hidden rounded-md">
-              {primaryPhoto?.url ? <AssetImage src={primaryPhoto.url} alt="" sizes="300px" /> : null}
-            </div>
-            <p className="mt-4 font-serif text-3xl font-light text-vault-text">{item.name}</p>
-            <p className="data mt-2 text-vault-gold">{currency.format(item.costBasis)} to {currency.format(getCurrentValue(item))}</p>
-            <p className="data mt-1 text-vault-green">{percent.format(itemReturn.percentage)} return</p>
-          </div>
-          <ShareCardTrigger mode="item" item={item} items={items} className="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-vault-gold/35 bg-vault-gold/10 px-4 py-3 text-vault-gold transition hover:border-vault-gold" />
-          <p className="mt-2 text-xs text-vault-faint">{shareText}</p>
-        </div>
       </section>
 
       <section className="mt-6 vault-panel rounded-lg p-5">

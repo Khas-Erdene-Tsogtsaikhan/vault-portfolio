@@ -6,7 +6,7 @@ import { ArrowUpRight, Save, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/Badge";
 import { AssetImage } from "@/components/AssetImage";
-import { ShareCardTrigger } from "@/components/ShareCards";
+import { OpenToOffersControl } from "@/components/OpenToOffersControl";
 import { categories, type Category } from "@/lib/types";
 import { categoryLabel, currency, getCompletenessScore, getCurrentValue, getItemDailyDelta, getItemReturn, getPrimaryPhoto, percent, preciseCurrency } from "@/lib/portfolio-utils";
 import { useVaultStore } from "@/lib/vault-store";
@@ -34,7 +34,7 @@ export function CollectionTable() {
         if (sort === "delta") return getItemDailyDelta(b).amount - getItemDailyDelta(a).amount;
         if (sort === "acquired") return b.acquiredDate.localeCompare(a.acquiredDate);
         if (sort === "documents") return b.documents.length - a.documents.length;
-        return b.currentValueUser - a.currentValueUser;
+        return getCurrentValue(b) - getCurrentValue(a);
       });
   }, [category, items, query, sort]);
 
@@ -89,14 +89,6 @@ export function CollectionTable() {
         </div>
       </section>
 
-      <section className="mb-4 flex flex-col gap-4 rounded-lg border border-vault-gold/25 bg-gradient-to-br from-[#141006] to-vault-card p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="section-label">Collection Wrapped</p>
-          <p className="mt-1 text-sm text-vault-text">Export a beautiful portfolio card for your whole Vault.</p>
-        </div>
-        <ShareCardTrigger mode="collection" items={items} />
-      </section>
-
       {selectedIds.length ? (
         <motion.section initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-4 rounded-lg border border-vault-gold/30 bg-vault-gold/10 p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
@@ -124,7 +116,7 @@ export function CollectionTable() {
       <div className="vault-table">
         <div className="hidden grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr_42px] border-b border-vault-border px-4 py-3 text-[9px] uppercase tracking-[0.15em] text-vault-faint lg:grid">
           <button onClick={() => setSelectedIds(selectedIds.length === rows.length ? [] : rows.map((item) => item.id))} className="h-4 w-4 rounded border border-vault-border" aria-label="Select all visible assets" />
-          <span>Asset</span><span>Category</span><span>Value</span><span>Today</span><span>Docs</span><span>Share</span><span />
+          <span>Asset</span><span>Category</span><span>Value</span><span>Today</span><span>Docs</span><span>Liquidity</span><span />
         </div>
         {rows.map((item) => {
           const itemReturn = getItemReturn(item);
@@ -169,7 +161,7 @@ export function CollectionTable() {
                 {item.documents.length} docs · {getCompletenessScore(item)}%
                 <ArrowUpRight size={15} />
               </span>
-              <ShareCardTrigger mode="item" item={item} items={items} compact />
+              <OpenToOffersControl item={item} compact />
               <button
                 onClick={async () => {
                   const confirmed = window.confirm(`Remove "${item.name}" from your Vault?`);
