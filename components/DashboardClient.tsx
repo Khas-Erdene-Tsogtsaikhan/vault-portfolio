@@ -19,9 +19,9 @@ import {
   getCurrentValue,
   getItemDailyDelta,
   getItemHighLow,
+  getItemImageUrl,
   getItemReturn,
   getPortfolioMetrics,
-  getPrimaryPhoto,
   percent,
   preciseCurrency
 } from "@/lib/portfolio-utils";
@@ -267,7 +267,7 @@ export function DashboardClient() {
               <Link href={`/collection/${item.id}`} className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-vault-border px-5 py-4 transition last:border-b-0 hover:bg-vault-gold/5 sm:grid-cols-[minmax(0,1fr)_auto_auto] ${isAth ? "bg-vault-gold/5" : ""}`}>
                 <span className="flex min-w-0 items-center gap-3">
                   <span className="relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-vault-border bg-vault-black">
-                    <AssetImage src={getPrimaryPhoto(item.photos)?.url} alt={item.name} sizes="44px" />
+                    <AssetImage src={getItemImageUrl(item)} alt={item.name} sizes="44px" />
                   </span>
                   <span className="min-w-0">
                     <span className="flex min-w-0 items-center gap-2">

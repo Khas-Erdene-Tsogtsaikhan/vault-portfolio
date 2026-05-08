@@ -16,6 +16,7 @@ import {
   getCurrentValue,
   getItemDailyDelta,
   getItemHighLow,
+  getItemImageUrl,
   getItemReturn,
   getLiquidity,
   percent,
@@ -66,6 +67,7 @@ export function ItemDetailClient({ id }: { id: string }) {
   const highLow = getItemHighLow(item);
   const galleryPhotos = [...item.photos].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.order - b.order);
   const activePhotoRecord = galleryPhotos[activePhoto];
+  const fallbackImageUrl = getItemImageUrl(item);
   const chartData = item.priceHistory.map((point) => ({
     date: new Date(point.recordedAt).toLocaleDateString("en-US", { month: "short" }),
     value: point.value,
@@ -93,8 +95,8 @@ export function ItemDetailClient({ id }: { id: string }) {
       <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <div className="relative h-[520px] overflow-hidden rounded-lg border border-vault-border bg-vault-card">
-            {activePhotoRecord?.url ? (
-              <AssetImage src={activePhotoRecord.url} alt={item.name} priority sizes="(min-width:1024px) 50vw, 100vw" />
+            {activePhotoRecord?.url || fallbackImageUrl ? (
+              <AssetImage src={activePhotoRecord?.url ?? fallbackImageUrl} alt={item.name} priority sizes="(min-width:1024px) 50vw, 100vw" />
             ) : (
               <div className="flex h-full items-center justify-center text-vault-muted">Upload the first owner photo</div>
             )}

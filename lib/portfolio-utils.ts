@@ -91,6 +91,18 @@ export function getPrimaryPhoto(photos: VaultPhoto[]) {
   return photos.find((photo) => photo.isPrimary) ?? photos[0];
 }
 
+export function getItemImageUrl(item: VaultItem) {
+  const primaryUrl = normalizeLegacyShareImageUrl(getPrimaryPhoto(item.photos)?.url);
+  if (primaryUrl) return primaryUrl;
+  if (!item.pricechartingId && !item.pricechartingConsole) return undefined;
+
+  const params = new URLSearchParams({
+    name: item.name,
+    console: item.pricechartingConsole || item.brand || "PriceCharting"
+  });
+  return `/api/market/image?${params.toString()}`;
+}
+
 export function getItemReturn(item: VaultItem) {
   const amount = getCurrentValue(item) - item.costBasis;
   return { amount, percentage: item.costBasis ? amount / item.costBasis : 0 };
@@ -340,4 +352,13 @@ function addDays(date: Date, days: number) {
 
 function trimDecimal(value: number) {
   return value.toFixed(1).replace(/\.0$/, "");
+}
+
+function normalizeLegacyShareImageUrl(url?: string) {
+  if (!url) return undefined;
+  if (!url.includes("/api/share/image")) return url;
+  const query = url.split("?")[1];
+  if (!query) return undefined;
+  const original = new URLSearchParams(query).get("url");
+  return original ? decodeURIComponent(original) : undefined;
 }

@@ -6,14 +6,17 @@ import { useState } from "react";
 
 export function isDisplayableImage(url?: string) {
   if (!url) return false;
-  const clean = url.split("?")[0].toLowerCase();
+  const normalized = normalizeLegacyShareImageUrl(url);
+  if (!normalized) return false;
+  const clean = normalized.split("?")[0].toLowerCase();
   return !clean.endsWith(".heic") && !clean.endsWith(".heif");
 }
 
 export function AssetImage({ src, alt, fill = true, sizes = "100vw", className = "object-cover", priority = false }: { src?: string; alt: string; fill?: boolean; sizes?: string; className?: string; priority?: boolean }) {
   const [failed, setFailed] = useState(false);
+  const imageSrc = normalizeLegacyShareImageUrl(src);
 
-  if (!isDisplayableImage(src)) {
+  if (!isDisplayableImage(imageSrc)) {
     return (
       <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-vault-black text-center text-vault-muted">
         <ImageOff size={24} className="text-vault-gold" />
@@ -24,14 +27,14 @@ export function AssetImage({ src, alt, fill = true, sizes = "100vw", className =
 
   if (failed) return <ImageFallback />;
 
-  if (usesPlainImage(src)) {
+  if (usesPlainImage(imageSrc)) {
     const sizingClass = fill ? "h-full w-full" : "";
     // Dynamic market proxy images and some remote collector images are safer outside Next's optimizer.
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src as string} alt={alt} className={`${sizingClass} ${className}`} onError={() => setFailed(true)} />;
+    return <img src={imageSrc as string} alt={alt} className={`${sizingClass} ${className}`} onError={() => setFailed(true)} />;
   }
 
-  return <Image src={src as string} alt={alt} fill={fill} priority={priority} sizes={sizes} className={className} unoptimized={src?.includes("supabase.co/storage")} onError={() => setFailed(true)} />;
+  return <Image src={imageSrc as string} alt={alt} fill={fill} priority={priority} sizes={sizes} className={className} unoptimized={imageSrc?.includes("supabase.co/storage")} onError={() => setFailed(true)} />;
 }
 
 function usesPlainImage(src?: string) {
@@ -41,6 +44,14 @@ function usesPlainImage(src?: string) {
     || src?.includes("images.pricecharting.com")
     || src?.includes("pricecharting.com")
   );
+}
+
+function normalizeLegacyShareImageUrl(src?: string) {
+  if (!src || !src.includes("/api/share/image")) return src;
+  const query = src.split("?")[1];
+  if (!query) return undefined;
+  const original = new URLSearchParams(query).get("url");
+  return original ? decodeURIComponent(original) : undefined;
 }
 
 function ImageFallback() {

@@ -8,7 +8,7 @@ import { Badge } from "@/components/Badge";
 import { AssetImage } from "@/components/AssetImage";
 import { OpenToOffersControl } from "@/components/OpenToOffersControl";
 import { categories, type Category } from "@/lib/types";
-import { categoryLabel, currency, getCompletenessScore, getCurrentValue, getItemDailyDelta, getItemReturn, getPrimaryPhoto, percent, preciseCurrency } from "@/lib/portfolio-utils";
+import { categoryLabel, currency, getCompletenessScore, getCurrentValue, getItemDailyDelta, getItemImageUrl, getItemReturn, percent, preciseCurrency } from "@/lib/portfolio-utils";
 import { useVaultStore } from "@/lib/vault-store";
 
 type SortKey = "value" | "return" | "delta" | "acquired" | "documents";
@@ -121,7 +121,7 @@ export function CollectionTable() {
         {rows.map((item) => {
           const itemReturn = getItemReturn(item);
           const daily = getItemDailyDelta(item);
-          const primaryPhoto = getPrimaryPhoto(item.photos);
+          const imageUrl = getItemImageUrl(item);
           const selected = selectedIds.includes(item.id);
           return (
             <motion.div
@@ -141,7 +141,7 @@ export function CollectionTable() {
               </label>
               <Link href={`/collection/${item.id}`} className="flex items-center gap-4">
                 <div className="relative h-10 w-10 overflow-hidden rounded-md border border-vault-border">
-                  <AssetImage src={primaryPhoto?.url} alt={item.name} sizes="64px" />
+                  <AssetImage src={imageUrl} alt={item.name} sizes="64px" />
                 </div>
                 <span>
                   <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>
