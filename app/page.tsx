@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, BarChart3, Clock3, Database, FileCheck2, RefreshCw, ShieldCheck, TrendingUp } from "lucide-react";
+import { ArrowRight, Clock3, Database, FileCheck2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const categories = ["Trading Cards", "Pokemon", "Sports Cards", "Video Games", "Comics", "Coins", "Consoles", "Watches"];
@@ -97,7 +97,11 @@ export default function HomePage() {
                 Sign in
               </Link>
             </div>
-            <p className="mt-5 text-xs leading-5 text-vault-muted">Used by collectors tracking $2M+ in combined collection value</p>
+            <div className="mx-auto mt-7 max-w-xl border-y border-vault-gold/20 py-4">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-vault-faint">Used by collectors tracking</p>
+              <p className="data mt-2 text-3xl text-vault-gold sm:text-5xl">$2M+</p>
+              <p className="mt-2 text-xs uppercase tracking-[0.14em] text-vault-muted">in combined collection value</p>
+            </div>
           </div>
 
           <div className="mt-10">
@@ -105,7 +109,6 @@ export default function HomePage() {
             <DashboardPreviewImage />
           </div>
 
-          <TrustStrip />
           {checkingSession ? <p className="mt-5 text-center text-[10px] uppercase tracking-[0.12em] text-vault-faint">Checking session...</p> : null}
         </div>
       </section>
@@ -128,7 +131,7 @@ export default function HomePage() {
               </h2>
             </div>
             <p className="max-w-md text-sm leading-7 text-vault-muted">
-              Real screenshots from the current web app: collection management, item intake, and provenance tracking.
+              Every item in your vault behaves like a position. Daily deltas, all-time returns, category allocation, and provenance records live in one terminal.
             </p>
           </div>
 
@@ -153,11 +156,17 @@ export default function HomePage() {
               Cards, consoles, comics, sealed product, sports cards, and one-off pieces can live in the same dashboard without turning into a spreadsheet.
             </p>
           </div>
-          <div className="mt-8 flex gap-3 overflow-x-auto pb-3 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]">
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map((category) => (
-              <span key={category} className="shrink-0 rounded-full border border-vault-border bg-vault-card px-4 py-2 text-xs text-vault-muted">
-                {category}
-              </span>
+              <div key={category} className="group rounded-[14px] border border-vault-gold/15 bg-[linear-gradient(135deg,rgba(201,168,76,0.08),rgba(255,255,255,0.02))] p-[1px] transition hover:-translate-y-0.5 hover:border-vault-gold/35">
+                <div className="rounded-[13px] bg-vault-card/90 px-4 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-vault-text">{category}</span>
+                    <span className="h-1.5 w-1.5 rounded-full bg-vault-gold opacity-70 transition group-hover:opacity-100" />
+                  </div>
+                  <p className="mt-2 text-[10px] uppercase tracking-[0.14em] text-vault-faint">Supported category</p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -223,30 +232,6 @@ function DashboardPreviewImage() {
             sizes="(max-width: 768px) 100vw, 1280px"
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-vault-black to-transparent" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TrustStrip() {
-  return (
-    <div className="mx-auto mt-8 grid max-w-5xl gap-3 sm:grid-cols-3">
-      <TrustItem icon={TrendingUp} label="Portfolio snapshots" detail="Charts from saved portfolio values" />
-      <TrustItem icon={RefreshCw} label="Daily refresh ready" detail="Catalog prices sync outside the app server" />
-      <TrustItem icon={ShieldCheck} label="Private vault data" detail="Supabase stores user-owned assets only" />
-    </div>
-  );
-}
-
-function TrustItem({ icon: Icon, label, detail }: { icon: LucideIcon; label: string; detail: string }) {
-  return (
-    <div className="rounded-[12px] border border-vault-border bg-vault-card/80 p-4 text-left">
-      <div className="flex items-start gap-3">
-        <Icon size={18} className="mt-0.5 text-vault-gold" />
-        <div>
-          <p className="text-sm font-medium text-vault-text">{label}</p>
-          <p className="mt-1 text-xs leading-5 text-vault-muted">{detail}</p>
         </div>
       </div>
     </div>
