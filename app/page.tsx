@@ -10,6 +10,30 @@ import { supabase } from "@/lib/supabase";
 
 const categories = ["Trading Cards", "Pokemon", "Sports Cards", "Video Games", "Comics", "Coins", "Consoles", "Watches"];
 
+const productScreenshots = [
+  {
+    label: "Collection",
+    title: "Every position in one table.",
+    body: "Filter, sort, and inspect holdings with value, daily movement, documents, and liquidity controls.",
+    src: "/landing-collection-preview.png",
+    alt: "VAULT collection page showing assets, values, daily movement, documents, and offer controls"
+  },
+  {
+    label: "Add",
+    title: "Search, select, and add.",
+    body: "Search guide values, review selected positions, and add items with real portfolio weight.",
+    src: "/landing-add-preview.png",
+    alt: "VAULT add page showing search mode, selected positions, and add selected action"
+  },
+  {
+    label: "Vault",
+    title: "Proof beside the asset.",
+    body: "Receipts, certificates, photos, and completion depth stay attached to the collection.",
+    src: "/landing-vault-preview.png",
+    alt: "VAULT documents page showing receipts, certificates, photos, and provenance completion"
+  }
+];
+
 export default function HomePage() {
   const router = useRouter();
   const [checkingSession, setCheckingSession] = useState(true);
@@ -91,6 +115,28 @@ export default function HomePage() {
           <ValueCard icon={Database} title="Real guide values" body="Search market-tracked products, save the right condition, and keep manual estimates when a piece needs your own value." />
           <ValueCard icon={Clock3} title="Daily portfolio movement" body="Snapshots turn your collection into a real chart, so values and deltas move when the portfolio changes." />
           <ValueCard icon={FileCheck2} title="Proof with every item" body="Receipts, certificates, photos, notes, condition, and cost basis stay attached to the asset." />
+        </div>
+      </section>
+
+      <section className="px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+            <div>
+              <p className="section-label">Product views</p>
+              <h2 className="mt-4 max-w-3xl font-serif text-4xl font-light leading-tight text-vault-text sm:text-6xl">
+                The rest of the vault, not a mockup.
+              </h2>
+            </div>
+            <p className="max-w-md text-sm leading-7 text-vault-muted">
+              Real screenshots from the current web app: collection management, item intake, and provenance tracking.
+            </p>
+          </div>
+
+          <div className="mt-9 grid gap-5 lg:grid-cols-3">
+            {productScreenshots.map((screenshot) => (
+              <ProductScreenshotCard key={screenshot.src} screenshot={screenshot} />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -204,6 +250,29 @@ function TrustItem({ icon: Icon, label, detail }: { icon: LucideIcon; label: str
         </div>
       </div>
     </div>
+  );
+}
+
+function ProductScreenshotCard({ screenshot }: { screenshot: (typeof productScreenshots)[number] }) {
+  return (
+    <article className="group overflow-hidden rounded-[16px] border border-vault-border bg-vault-card transition hover:-translate-y-1 hover:border-vault-gold/35">
+      <div className="relative aspect-[16/10] overflow-hidden border-b border-vault-border bg-vault-black">
+        <Image
+          src={screenshot.src}
+          alt={screenshot.alt}
+          width={1600}
+          height={1000}
+          className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.025]"
+          sizes="(max-width: 1024px) 100vw, 33vw"
+        />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-vault-card to-transparent" />
+      </div>
+      <div className="p-5">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-vault-gold">{screenshot.label}</p>
+        <h3 className="mt-3 text-xl font-semibold text-vault-text">{screenshot.title}</h3>
+        <p className="mt-3 text-sm leading-6 text-vault-muted">{screenshot.body}</p>
+      </div>
+    </article>
   );
 }
 
