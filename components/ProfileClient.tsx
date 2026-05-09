@@ -24,7 +24,7 @@ export function ProfileClient() {
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(440px,520px)]">
         <div className="vault-panel rounded-lg p-6">
           <p className="section-label">Collector Identity</p>
-          <h1 className="mt-3 font-serif text-6xl font-light text-vault-text">@{user.username}</h1>
+          <h1 className="mt-3 break-words font-serif text-4xl font-light leading-none text-vault-text sm:text-6xl">@{user.username}</h1>
           <div className="mt-5 flex flex-wrap gap-3">
             <TierBadge tier={metrics.tier} />
             <Badge tone="gold">Top {metrics.percentile}%</Badge>
@@ -71,7 +71,7 @@ export function ProfileClient() {
           <p className="section-label">Vault Wrapped Preview</p>
           <div className="mt-5 grid gap-4 bg-vault-black p-5 sm:grid-cols-[1fr_1fr]">
             <div>
-              <p className="font-serif text-5xl font-light text-vault-gold">{currency.format(metrics.totalValue)}</p>
+              <p className="font-serif text-4xl font-light text-vault-gold sm:text-5xl">{currency.format(metrics.totalValue)}</p>
               <p className="mt-3 text-vault-muted">{metrics.itemCount} objects · {metrics.tier} tier · {percent.format(metrics.totalReturnPercent)} return</p>
             </div>
             <div className="grid grid-cols-2 gap-2">

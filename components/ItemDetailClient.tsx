@@ -56,7 +56,7 @@ export function ItemDetailClient({ id }: { id: string }) {
     return (
       <AppShell>
         <div className="vault-panel rounded-lg p-10 text-center">
-          <h1 className="font-serif text-5xl font-light text-vault-text">Asset file not found.</h1>
+          <h1 className="font-serif text-4xl font-light leading-none text-vault-text sm:text-5xl">Asset file not found.</h1>
           <Link href="/collection" className="mt-5 inline-flex rounded-md bg-vault-gold px-5 py-3 font-semibold text-vault-black">Return to collection</Link>
         </div>
       </AppShell>
@@ -96,7 +96,7 @@ export function ItemDetailClient({ id }: { id: string }) {
       </div>
       <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
-          <div className="relative h-[520px] overflow-hidden rounded-lg border border-vault-border bg-vault-card">
+          <div className="relative h-[340px] overflow-hidden rounded-lg border border-vault-border bg-vault-card sm:h-[520px]">
             {displayPhotoUrl ? (
               <AssetImage src={displayPhotoUrl} alt={item.name} priority sizes="(min-width:1024px) 50vw, 100vw" />
             ) : (
@@ -157,7 +157,7 @@ export function ItemDetailClient({ id }: { id: string }) {
 
         <div className="vault-panel rounded-lg p-6">
           <p className="section-label">Position Detail</p>
-          <h1 className="mt-3 font-serif text-6xl font-light leading-none text-vault-text">{item.name}</h1>
+          <h1 className="mt-3 break-words font-serif text-4xl font-light leading-none text-vault-text sm:text-6xl">{item.name}</h1>
           <div className="mt-5 flex flex-wrap gap-2">
             <Badge>{categoryLabel(item.category)}</Badge>
             <Badge tone={daily.amount >= 0 ? "green" : "red"}>{daily.amount >= 0 ? "Up today" : "Down today"}</Badge>
@@ -166,7 +166,7 @@ export function ItemDetailClient({ id }: { id: string }) {
 
           <div className="mt-8 border-y border-vault-border py-6">
             <p className="section-label">Current Estimated Value</p>
-            <p className="data mt-2 text-5xl text-vault-text">{currency.format(getCurrentValue(item))}</p>
+            <p className="data mt-2 text-4xl text-vault-text sm:text-5xl">{currency.format(getCurrentValue(item))}</p>
             <p className={`data mt-2 text-sm ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
               {daily.amount >= 0 ? "▲" : "▼"} {preciseCurrency.format(daily.amount)} ({percent.format(daily.percentage)}) Today
             </p>

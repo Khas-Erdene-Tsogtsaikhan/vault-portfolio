@@ -17,7 +17,7 @@ export function VaultDocsClient() {
     <AppShell>
       <section className="mb-8">
         <p className="section-label">Provenance Vault</p>
-        <h1 className="mt-3 font-serif text-6xl font-light text-vault-text">The permanent record of what you own.</h1>
+        <h1 className="mt-3 font-serif text-4xl font-light leading-none text-vault-text sm:text-6xl">The permanent record of what you own.</h1>
         <p className="mt-4 max-w-3xl text-vault-muted">A documented asset commands more trust. Keep owner photos, original receipts, certificates of authenticity, and appraisal records attached to every position.</p>
       </section>
       <section className="mb-6 grid gap-3 md:grid-cols-3">
@@ -30,7 +30,7 @@ export function VaultDocsClient() {
           <p className="section-label">All Documents</p>
           <div className="mt-5 space-y-3">
             {docs.map(({ document, item }) => (
-              <Link href={`/collection/${item.id}`} key={document.id} className="flex items-center justify-between rounded-md border border-vault-border bg-vault-surface p-4 transition hover:border-vault-bright">
+              <Link href={`/collection/${item.id}`} key={document.id} className="flex min-w-0 flex-col gap-3 rounded-md border border-vault-border bg-vault-surface p-4 transition hover:border-vault-bright sm:flex-row sm:items-center sm:justify-between">
                 <span className="flex min-w-0 items-center gap-3 text-sm text-vault-text">
                   <FileText size={16} className="shrink-0 text-vault-gold" />
                   <span className="min-w-0">
@@ -38,7 +38,7 @@ export function VaultDocsClient() {
                     <span className="mt-1 inline-flex rounded border border-vault-border bg-vault-black px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.08em] text-vault-muted">{documentTypeLabels[document.type]}</span>
                   </span>
                 </span>
-                <span className="shrink-0 pl-4 text-xs text-vault-muted">{item.name}</span>
+                <span className="min-w-0 truncate text-xs text-vault-muted sm:shrink-0 sm:pl-4">{item.name}</span>
               </Link>
             ))}
             {!docs.length ? <p className="rounded-md border border-dashed border-vault-border p-5 text-sm leading-6 text-vault-muted">No documents yet. Open any asset file from Collection and attach a receipt, certificate, appraisal, or authenticity record.</p> : null}

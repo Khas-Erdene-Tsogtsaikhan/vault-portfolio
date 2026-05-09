@@ -189,7 +189,7 @@ export function AddItemWizard() {
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
       <section className="vault-panel rounded-lg p-5">
         <p className="section-label">Add to Portfolio</p>
-        <h1 className="mt-2 font-serif text-5xl font-light text-vault-text">Search, select, and add positions to your Vault.</h1>
+        <h1 className="mt-2 font-serif text-4xl font-light leading-none text-vault-text sm:text-5xl">Search, select, and add positions to your Vault.</h1>
         {!items.length ? (
           <div className="mt-5 rounded-[10px] border border-vault-gold/25 bg-vault-gold/10 p-4">
             <p className="section-label">First Asset Onboarding</p>
@@ -242,7 +242,7 @@ export function AddItemWizard() {
           <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-vault-black/90 p-6 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="max-w-xl rounded-[14px] border border-vault-gold-dim bg-gradient-to-br from-[#120e04] to-vault-card p-10 text-center" initial={{ scale: 0.9, y: 24 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 180, damping: 18 }}>
               <p className="hero-label justify-center before:hidden">Tier Upgrade</p>
-              <h2 className="mt-4 font-serif text-6xl font-light text-vault-gold">{tierCelebration}</h2>
+              <h2 className="mt-4 font-serif text-4xl font-light text-vault-gold sm:text-6xl">{tierCelebration}</h2>
               <p className="mt-4 text-vault-muted">Your collection has crossed into a new class of physical wealth.</p>
             </motion.div>
           </motion.div>
@@ -251,8 +251,8 @@ export function AddItemWizard() {
           <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-vault-black/85 p-6 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div className="max-w-lg rounded-[14px] border border-vault-gold-dim bg-vault-card p-8 text-center" initial={{ scale: 0.94, y: 22 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 190, damping: 18 }}>
               <p className="hero-label justify-center before:hidden">Vault Updated</p>
-              <h2 className="mt-4 font-serif text-5xl font-light text-vault-text">{addCelebration.count} {addCelebration.count === 1 ? "asset" : "assets"} secured.</h2>
-              <p className="data mt-4 text-4xl text-vault-gold">{currency.format(addCelebration.value)}</p>
+              <h2 className="mt-4 font-serif text-4xl font-light text-vault-text sm:text-5xl">{addCelebration.count} {addCelebration.count === 1 ? "asset" : "assets"} secured.</h2>
+              <p className="data mt-4 text-3xl text-vault-gold sm:text-4xl">{currency.format(addCelebration.value)}</p>
               <p className={`data mt-2 text-sm ${addCelebration.gain >= 0 ? "text-vault-green" : "text-vault-muted"}`}>{addCelebration.gain >= 0 ? "+" : ""}{currency.format(addCelebration.gain)} unrealized from cost basis</p>
               <p className="mt-4 text-sm leading-6 text-vault-muted">Your portfolio record just became more valuable and more complete.</p>
             </motion.div>

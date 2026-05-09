@@ -17,7 +17,7 @@ export function OffersClient() {
     <AppShell>
       <section className="mb-8">
         <p className="section-label">Offers Inbox</p>
-        <h1 className="mt-3 font-serif text-6xl font-light text-vault-text">Interest without marketplace pressure.</h1>
+        <h1 className="mt-3 font-serif text-4xl font-light leading-none text-vault-text sm:text-6xl">Interest without marketplace pressure.</h1>
         <p className="mt-4 max-w-2xl text-vault-muted">Accepting an offer only flags mutual interest in Phase 2. No escrow, no checkout, no forced transaction.</p>
       </section>
 

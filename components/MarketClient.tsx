@@ -19,7 +19,7 @@ export function MarketClient() {
     <AppShell>
       <section className="mb-8">
         <p className="section-label">Market Intelligence</p>
-        <h1 className="mt-3 max-w-4xl font-serif text-6xl font-light leading-none text-vault-text">Your vault now listens to the market.</h1>
+        <h1 className="mt-3 max-w-4xl font-serif text-4xl font-light leading-none text-vault-text sm:text-6xl">Your vault now listens to the market.</h1>
         <p className="mt-4 max-w-2xl text-vault-muted">Search sold comps and see price events for what you own. No marketplace noise. Just portfolio intelligence.</p>
       </section>
 
@@ -60,13 +60,13 @@ export function MarketClient() {
             <Activity size={16} className="text-vault-gold" />
           </div>
           {movers.map(({ item, daily }) => (
-            <div key={item.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 border-b border-vault-border px-5 py-4 last:border-b-0">
-              <span>
+            <div key={item.id} className="grid gap-3 border-b border-vault-border px-5 py-4 last:border-b-0 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-center">
+              <span className="min-w-0">
                 <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>
                 <span className="block text-[11px] text-vault-faint">{item.condition} - {categoryLabel(item.category)}</span>
               </span>
-              <span className="data text-sm text-vault-text">{currency.format(item.currentValueUser)}</span>
-              <span className={`data text-right text-sm ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
+              <span className="data text-sm text-vault-text sm:text-right">{currency.format(item.currentValueUser)}</span>
+              <span className={`data text-sm sm:text-right ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
                 {daily.amount >= 0 ? "+" : ""}{currency.format(daily.amount)}
                 <span className="block text-[11px]">{percent.format(daily.percentage)}</span>
               </span>

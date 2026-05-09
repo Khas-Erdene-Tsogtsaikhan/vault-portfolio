@@ -20,7 +20,7 @@ export function SettingsClient() {
     <AppShell>
       <section className="mb-8">
         <p className="section-label">Settings</p>
-        <h1 className="mt-3 font-serif text-6xl font-light text-vault-text">Control the rhythm of your Vault.</h1>
+        <h1 className="mt-3 font-serif text-4xl font-light leading-none text-vault-text sm:text-6xl">Control the rhythm of your Vault.</h1>
         <p className="mt-4 max-w-2xl text-vault-muted">Tune alerts, digest timing, and the way your collection checks in with you.</p>
       </section>
 

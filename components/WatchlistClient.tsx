@@ -14,7 +14,7 @@ export function WatchlistClient() {
     <AppShell>
       <section className="mb-8">
         <p className="section-label">Demand Signal</p>
-        <h1 className="mt-3 font-serif text-6xl font-light text-vault-text">Your market watchlist.</h1>
+        <h1 className="mt-3 font-serif text-4xl font-light leading-none text-vault-text sm:text-6xl">Your market watchlist.</h1>
         <p className="mt-4 max-w-2xl text-vault-muted">A stock-watchlist view for items you do not own yet. Every watch is a quiet demand signal for the future marketplace.</p>
       </section>
 
@@ -27,12 +27,12 @@ export function WatchlistClient() {
           const seven = item.currentPrice - item.value7dAgo;
           return (
             <div key={item.id} className={`grid gap-4 border-b border-vault-border px-5 py-4 last:border-b-0 lg:grid-cols-[1.35fr_0.8fr_0.7fr_0.7fr_0.7fr_0.8fr_0.7fr] lg:items-center ${item.status === "open_to_offers" ? "bg-vault-gold/5" : "bg-vault-card"}`}>
-              <span className="flex items-center gap-3">
+              <span className="flex min-w-0 items-center gap-3">
                 <span className="relative h-11 w-11 overflow-hidden rounded border border-vault-border bg-vault-black">
                   {item.imageUrl ? <Image src={item.imageUrl} alt="" fill sizes="44px" className="object-cover" /> : <Eye className="m-3 text-vault-gold" />}
                 </span>
-                <span>
-                  <span className="block text-sm font-medium text-vault-text">{item.name}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-vault-text">{item.name}</span>
                   <span className="block text-xs text-vault-faint">Target {item.targetPrice ? currency.format(item.targetPrice) : "not set"}</span>
                 </span>
               </span>
