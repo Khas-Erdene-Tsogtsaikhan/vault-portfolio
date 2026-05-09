@@ -8,7 +8,7 @@ import { categoryLabel, currency, getCategoryBreakdown, getNextTierProgress, get
 import { useVaultStore } from "@/lib/vault-store";
 
 const links = [
-  { href: "/", label: "Dashboard", icon: Landmark },
+  { href: "/dashboard", label: "Dashboard", icon: Landmark },
   { href: "/collection", label: "Collection", icon: Gem },
   { href: "/add", label: "Add", icon: Plus },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen overflow-x-hidden">
       <header className="sticky top-0 z-50 border-b border-vault-border bg-vault-black/95 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-3 px-4 py-4 sm:px-5 lg:px-10">
-          <Link href="/" className="flex min-w-0 items-center gap-2 sm:gap-3">
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2 sm:gap-3">
             <span className="font-serif text-xl font-light uppercase tracking-[0.22em] text-vault-gold sm:tracking-[0.28em]">Vault</span>
             <span className="font-serif text-vault-muted">·</span>
             <span className="hidden text-xs uppercase tracking-[0.14em] text-vault-muted sm:inline">Collection OS</span>
@@ -78,7 +78,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link key={link.href} href={link.href} className={`flex items-center gap-2 border-l-2 px-5 py-2.5 text-[13px] transition ${active ? "border-vault-gold bg-vault-gold/5 text-vault-gold" : "border-transparent text-vault-muted hover:bg-white/[0.025] hover:text-vault-text"}`}>
                 <Icon size={15} />
                 {link.label}
-                {link.href === "/" ? <span className="data ml-auto text-[10px] text-vault-faint">{items.length}</span> : null}
+                {link.href === "/dashboard" ? <span className="data ml-auto text-[10px] text-vault-faint">{items.length}</span> : null}
               </Link>
             );
           })}

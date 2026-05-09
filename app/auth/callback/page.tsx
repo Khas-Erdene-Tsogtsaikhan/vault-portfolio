@@ -31,7 +31,7 @@ function AuthCallbackContent() {
           return;
         }
       }
-      router.replace("/");
+      router.replace("/dashboard");
     }
     void exchangeCode();
   }, [router, searchParams]);

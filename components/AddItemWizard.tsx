@@ -169,9 +169,9 @@ export function AddItemWizard() {
       setAddCelebration({ count: added.length, value: addedValue, gain: addedValue - addedCost });
       if (nextTier !== beforeMetrics.tier) {
         setTierCelebration(nextTier);
-        setTimeout(() => router.push("/"), 1600);
+        setTimeout(() => router.push("/dashboard"), 1600);
       } else {
-        setTimeout(() => router.push("/"), 1500);
+        setTimeout(() => router.push("/dashboard"), 1500);
       }
     } catch (error) {
       setToast(error instanceof Error ? error.message : "Could not save this item. Check Supabase setup and try again.");

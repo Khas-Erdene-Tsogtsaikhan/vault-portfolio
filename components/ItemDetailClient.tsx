@@ -89,7 +89,7 @@ export function ItemDetailClient({ id }: { id: string }) {
           <ArrowLeft size={15} />
           Back to Collection
         </Link>
-        <Link href="/" className="inline-flex items-center gap-2 rounded border border-vault-border bg-vault-card px-4 py-2 text-sm text-vault-muted transition hover:border-vault-bright hover:text-vault-text">
+        <Link href="/dashboard" className="inline-flex items-center gap-2 rounded border border-vault-border bg-vault-card px-4 py-2 text-sm text-vault-muted transition hover:border-vault-bright hover:text-vault-text">
           <LayoutDashboard size={15} />
           Dashboard
         </Link>

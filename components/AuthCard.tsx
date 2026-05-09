@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, LogOut, ShieldCheck } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import { useVaultStore } from "@/lib/vault-store";
 
-export function AuthCard() {
+export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?: "signin" | "signup"; redirectTo?: string } = {}) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("Sign in to persist your real portfolio to Supabase.");
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const user = useVaultStore((state) => state.user);
   const authStatus = useVaultStore((state) => state.authStatus);
   const authError = useVaultStore((state) => state.authError);
@@ -33,6 +35,7 @@ export function AuthCard() {
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setMessage(error ? error.message : "Signed in. Loading your Supabase vault...");
+    if (!error && redirectTo) router.push(redirectTo);
   }
 
   async function signInWithGoogle() {
