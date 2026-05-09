@@ -18,22 +18,36 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
   const resetToDemo = useVaultStore((state) => state.resetToDemo);
 
   async function submitEmailPassword() {
+    const trimmedEmail = email.trim();
+
     if (!supabase) {
       setMessage("Production auth is not configured in this environment.");
       return;
     }
+    if (!trimmedEmail) {
+      setMessage("Enter your email address first.");
+      return;
+    }
+    if (password.length < 6) {
+      setMessage("Use a password with at least 6 characters.");
+      return;
+    }
     if (mode === "signup") {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: trimmedEmail,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
+      if (!error && data.session && redirectTo) {
+        router.push(redirectTo);
+        return;
+      }
       setMessage(error ? error.message : "Verification email sent. Confirm it, then your VAULT session will persist.");
       return;
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
     setMessage(error ? error.message : "Signed in. Loading your vault...");
     if (!error && redirectTo) router.push(redirectTo);
   }
@@ -54,7 +68,7 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
   async function signOut() {
     if (supabase) await supabase.auth.signOut();
     resetToDemo();
-    setMessage("Signed out. Demo mode is active again.");
+    router.replace("/");
   }
 
   return (

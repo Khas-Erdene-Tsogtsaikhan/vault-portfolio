@@ -88,6 +88,14 @@ export function AnalyticsClient() {
   const watchBreakdown = breakdown.find((row) => row.category === "watches") ?? breakdown[0];
   const categoryIndex = marketIndices.find((index) => index.category === watchBreakdown?.category) ?? marketIndices[0];
 
+  if (items.length === 0) {
+    return (
+      <AppShell>
+        <EmptyAnalyticsState />
+      </AppShell>
+    );
+  }
+
   async function downloadDnaCard() {
     if (!dnaCardRef.current) return;
     const html2canvas = (await import("html2canvas")).default;
@@ -330,6 +338,32 @@ export function AnalyticsClient() {
         </TerminalSection>
       </motion.div>
     </AppShell>
+  );
+}
+
+function EmptyAnalyticsState() {
+  return (
+    <section className="vault-panel overflow-hidden rounded-[12px] border-vault-gold-dim">
+      <div className="grid min-h-[560px] place-items-center bg-[radial-gradient(ellipse_at_center_top,rgba(201,168,76,0.10),transparent_58%)] p-6 text-center sm:p-10">
+        <div className="mx-auto max-w-2xl">
+          <p className="section-label">Analytics</p>
+          <h1 className="mt-4 font-serif text-5xl font-light leading-tight text-vault-text sm:text-7xl">
+            Your performance terminal starts with the first item.
+          </h1>
+          <p className="mx-auto mt-5 max-w-xl text-sm leading-7 text-vault-muted">
+            Add a piece to unlock portfolio value, daily movement, category allocation, top performers, and item-level returns.
+          </p>
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/add" className="inline-flex min-h-12 items-center justify-center gap-2 rounded bg-vault-gold px-6 py-3 text-sm font-semibold text-vault-black transition hover:-translate-y-0.5 hover:bg-vault-gold-light">
+              Add first item <ChevronRight size={16} />
+            </Link>
+            <Link href="/dashboard" className="inline-flex min-h-12 items-center justify-center rounded border border-vault-border px-6 py-3 text-sm font-semibold text-vault-muted transition hover:border-vault-gold/50 hover:text-vault-text">
+              Back to dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
