@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
-import { ArrowRight, BarChart3, Clock3, Database, FileCheck2, Gem, Plus, ScrollText } from "lucide-react";
+import { ArrowRight, Clock3, Database, FileCheck2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const categories = ["Trading Cards", "Pokemon", "Sports Cards", "Video Games", "Comics", "Coins", "Consoles", "Watches"];
@@ -31,36 +31,6 @@ const productScreenshots = [
     body: "Receipts, certificates, photos, and completion depth stay attached to the collection.",
     src: "/landing-vault-preview.png",
     alt: "VAULT documents page showing receipts, certificates, photos, and provenance completion"
-  }
-];
-
-const showcaseSections = [
-  {
-    eyebrow: "01 / Search",
-    title: "Add a collectible like you are opening a position.",
-    body: "Search PriceCharting guide values, choose the right result, and add it to your vault with immediate portfolio weight.",
-    src: "/landing-add-preview.png",
-    alt: "VAULT add page showing search and selected positions",
-    icon: Plus,
-    reverse: false
-  },
-  {
-    eyebrow: "02 / Positions",
-    title: "Every item has value, movement, cost basis, and proof.",
-    body: "Your collection stops being a pile of assets and becomes a portfolio: current guide value, daily move, all-time return, docs, and liquidity all in one table.",
-    src: "/landing-collection-preview.png",
-    alt: "VAULT collection table showing portfolio positions",
-    icon: Gem,
-    reverse: true
-  },
-  {
-    eyebrow: "03 / Provenance",
-    title: "Receipts and certificates stay attached to the asset.",
-    body: "VAULT keeps the paperwork beside the piece, so high-value collectibles have a permanent record instead of scattered files and screenshots.",
-    src: "/landing-vault-preview.png",
-    alt: "VAULT provenance vault showing documents and completion scores",
-    icon: ScrollText,
-    reverse: false
   }
 ];
 
@@ -153,31 +123,11 @@ export default function HomePage() {
 
       <section className="px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mx-auto max-w-3xl text-center">
-            <p className="section-label">How VAULT works</p>
-            <h2 className="mt-4 font-serif text-4xl font-light leading-tight text-vault-text sm:text-6xl">
-              The portfolio layer for physical assets.
-            </h2>
-            <p className="mt-5 text-sm leading-7 text-vault-muted">
-              Built around the same loop collectors already use: find the piece, save the condition and value, then track the position as it moves.
-            </p>
-          </div>
-
-          <div className="mt-12 space-y-7">
-            {showcaseSections.map((section) => (
-              <ShowcaseSection key={section.eyebrow} section={section} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="border-y border-white/[0.06] bg-[#08080c] px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
               <p className="section-label">Product views</p>
               <h2 className="mt-4 max-w-3xl font-serif text-4xl font-light leading-tight text-vault-text sm:text-6xl">
-                One terminal for the whole vault.
+                The rest of the vault, not a mockup.
               </h2>
             </div>
             <p className="max-w-md text-sm leading-7 text-vault-muted">
@@ -306,46 +256,6 @@ function ProductScreenshotCard({ screenshot }: { screenshot: (typeof productScre
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-vault-gold">{screenshot.label}</p>
         <h3 className="mt-3 text-xl font-semibold text-vault-text">{screenshot.title}</h3>
         <p className="mt-3 text-sm leading-6 text-vault-muted">{screenshot.body}</p>
-      </div>
-    </article>
-  );
-}
-
-function ShowcaseSection({ section }: { section: (typeof showcaseSections)[number] }) {
-  const Icon = section.icon;
-
-  return (
-    <article className={`grid overflow-hidden rounded-[22px] border border-vault-border bg-vault-card lg:grid-cols-2 ${section.reverse ? "lg:[&>div:first-child]:order-2" : ""}`}>
-      <div className="flex min-h-[360px] flex-col justify-between p-6 sm:p-8 lg:p-10">
-        <div>
-          <div className="flex items-center gap-3 text-vault-gold">
-            <span className="flex h-9 w-9 items-center justify-center rounded border border-vault-gold/25 bg-vault-gold/10">
-              <Icon size={17} />
-            </span>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em]">{section.eyebrow}</p>
-          </div>
-          <h3 className="mt-8 max-w-xl font-serif text-4xl font-light leading-tight text-vault-text sm:text-5xl">
-            {section.title}
-          </h3>
-          <p className="mt-5 max-w-lg text-sm leading-7 text-vault-muted">{section.body}</p>
-        </div>
-        <div className="mt-8 flex items-center gap-3 text-xs text-vault-faint">
-          <BarChart3 size={15} className="text-vault-gold" />
-          <span>Guide value, returns, allocation, and proof stay connected.</span>
-        </div>
-      </div>
-
-      <div className="relative min-h-[320px] overflow-hidden border-t border-vault-border bg-vault-black lg:border-l lg:border-t-0">
-        <Image
-          src={section.src}
-          alt={section.alt}
-          width={1600}
-          height={1000}
-          className="h-full min-h-[320px] w-full object-cover object-top"
-          sizes="(max-width: 1024px) 100vw, 50vw"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(201,168,76,0.12),transparent_58%)]" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-vault-card to-transparent" />
       </div>
     </article>
   );
