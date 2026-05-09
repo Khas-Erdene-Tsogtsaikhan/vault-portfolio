@@ -11,6 +11,7 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("Sign in to save your real portfolio.");
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const user = useVaultStore((state) => state.user);
   const authStatus = useVaultStore((state) => state.authStatus);
@@ -44,12 +45,45 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
         router.push(redirectTo);
         return;
       }
-      setMessage(error ? error.message : "Verification email sent. Confirm it, then your VAULT session will persist.");
+      if (error) {
+        setVerificationEmail(null);
+        setMessage(error.message);
+        return;
+      }
+      setVerificationEmail(trimmedEmail);
+      if (data.user?.identities && data.user.identities.length === 0) {
+        setMessage("That email may already have a vault. Try signing in, or use resend only if the account has not been verified yet.");
+        return;
+      }
+      setMessage("Check your email for a verification link. If it does not arrive, use resend below or check spam.");
       return;
     }
     const { error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
     setMessage(error ? error.message : "Signed in. Loading your vault...");
     if (!error && redirectTo) router.push(redirectTo);
+  }
+
+  async function resendVerificationEmail() {
+    const targetEmail = (verificationEmail ?? email).trim();
+
+    if (!supabase) {
+      setMessage("Production auth is not configured in this environment.");
+      return;
+    }
+    if (!targetEmail) {
+      setMessage("Enter your email address first.");
+      return;
+    }
+
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: targetEmail,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`
+      }
+    });
+
+    setMessage(error ? error.message : "If this email has an unverified account, another verification link was sent.");
   }
 
   async function signInWithGoogle() {
@@ -113,6 +147,12 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
             </button>
             <button onClick={signInWithGoogle} className="inline-flex min-h-12 items-center justify-center rounded-md border border-vault-border px-5 py-3 text-sm font-semibold text-vault-text transition hover:-translate-y-0.5 hover:border-vault-bright">Continue with Google</button>
           </div>
+
+          {mode === "signup" && verificationEmail ? (
+            <button onClick={resendVerificationEmail} className="mt-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-vault-gold transition hover:text-vault-gold-light">
+              Resend verification email
+            </button>
+          ) : null}
 
           <div className="mt-5 flex flex-col gap-2 border-t border-vault-border pt-4 text-xs text-vault-faint sm:flex-row sm:items-center sm:justify-between">
             <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="text-left text-vault-gold transition hover:text-vault-gold-light">
