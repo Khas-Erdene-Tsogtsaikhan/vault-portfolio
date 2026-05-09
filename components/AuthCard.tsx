@@ -10,7 +10,7 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("Sign in to persist your real portfolio to Supabase.");
+  const [message, setMessage] = useState("Sign in to save your real portfolio.");
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const user = useVaultStore((state) => state.user);
   const authStatus = useVaultStore((state) => state.authStatus);
@@ -19,7 +19,7 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
 
   async function submitEmailPassword() {
     if (!supabase) {
-      setMessage("Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable production auth.");
+      setMessage("Production auth is not configured in this environment.");
       return;
     }
     if (mode === "signup") {
@@ -34,13 +34,13 @@ export function AuthCard({ initialMode = "signin", redirectTo }: { initialMode?:
       return;
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setMessage(error ? error.message : "Signed in. Loading your Supabase vault...");
+    setMessage(error ? error.message : "Signed in. Loading your vault...");
     if (!error && redirectTo) router.push(redirectTo);
   }
 
   async function signInWithGoogle() {
     if (!supabase) {
-      setMessage("Google OAuth is wired, but Supabase is not configured in this environment.");
+      setMessage("Google sign-in is not configured in this environment.");
       return;
     }
     await supabase.auth.signInWithOAuth({

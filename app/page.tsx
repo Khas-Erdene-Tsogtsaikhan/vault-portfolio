@@ -129,7 +129,7 @@ export default function HomePage() {
             <div>
               <p className="section-label">Product views</p>
               <h2 className="mt-4 max-w-3xl font-serif text-4xl font-light leading-tight text-vault-text sm:text-6xl">
-                The rest of the vault, not a mockup.
+                Finally know what you own.
               </h2>
             </div>
             <p className="max-w-md text-sm leading-7 text-vault-muted">
