@@ -201,3 +201,200 @@ textarea {
     transform: scale(0.8);
   }
 }
+
+.landing-aurora,
+.landing-grid,
+.landing-sheen {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.landing-aurora {
+  z-index: 0;
+  background:
+    linear-gradient(115deg, rgba(201, 168, 76, 0.16), transparent 28%, rgba(80, 201, 138, 0.08) 48%, transparent 66%, rgba(226, 196, 122, 0.10)),
+    radial-gradient(ellipse at 50% 0%, rgba(201, 168, 76, 0.13), transparent 56%),
+    linear-gradient(180deg, #07070a 0%, #0b0b10 48%, #050507 100%);
+  background-size: 180% 180%, 100% 100%, 100% 100%;
+  animation: vaultAuroraShift 18s ease-in-out infinite alternate;
+}
+
+.landing-grid {
+  z-index: 1;
+  opacity: 0.11;
+  background-image:
+    linear-gradient(rgba(226, 196, 122, 0.6) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(226, 196, 122, 0.5) 1px, transparent 1px);
+  background-size: 86px 86px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent 62%);
+  animation: vaultGridDrift 28s linear infinite;
+}
+
+.landing-sheen {
+  z-index: 2;
+  background: linear-gradient(105deg, transparent 0%, transparent 42%, rgba(255, 255, 255, 0.055) 50%, transparent 58%, transparent 100%);
+  transform: translateX(-55%);
+  animation: vaultPageSheen 13s ease-in-out infinite;
+}
+
+.landing-hero-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center top, rgba(201, 168, 76, 0.18), transparent 58%),
+    linear-gradient(to bottom, rgba(80, 201, 138, 0.035), transparent 42%);
+  animation: vaultGlowBreathe 5.5s ease-in-out infinite;
+}
+
+.landing-headline {
+  text-shadow:
+    0 0 46px rgba(201, 168, 76, 0.09),
+    0 18px 70px rgba(0, 0, 0, 0.42);
+}
+
+.landing-gold-text {
+  color: var(--gold);
+  text-shadow:
+    0 0 22px rgba(201, 168, 76, 0.26),
+    0 0 60px rgba(201, 168, 76, 0.12);
+}
+
+.landing-proof,
+.landing-dashboard-frame,
+.landing-product-card,
+.landing-value-card,
+.landing-category {
+  position: relative;
+}
+
+.landing-proof {
+  overflow: hidden;
+  border: 1px solid rgba(201, 168, 76, 0.22);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(201, 168, 76, 0.08), rgba(255, 255, 255, 0.025)),
+    rgba(17, 17, 24, 0.52);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 24px 80px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(14px);
+}
+
+.landing-proof::after,
+.landing-dashboard-frame::after,
+.landing-product-card::after,
+.landing-value-card::after,
+.landing-category::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(110deg, transparent 18%, rgba(255, 255, 255, 0.10) 42%, transparent 62%);
+  opacity: 0;
+  transform: translateX(-35%);
+}
+
+.landing-proof::after {
+  animation: vaultCardSheen 7s ease-in-out infinite;
+}
+
+.landing-dashboard-frame {
+  animation: vaultFloat 7s ease-in-out infinite;
+  box-shadow:
+    0 45px 150px rgba(0, 0, 0, 0.68),
+    0 0 90px rgba(201, 168, 76, 0.10),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
+}
+
+.landing-dashboard-frame::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(201, 168, 76, 0.18), transparent 38%, rgba(80, 201, 138, 0.10), transparent 72%, rgba(226, 196, 122, 0.14));
+  opacity: 0.9;
+  z-index: -1;
+}
+
+.landing-product-card,
+.landing-value-card {
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.landing-product-card:hover::after,
+.landing-value-card:hover::after,
+.landing-category:hover::after {
+  animation: vaultCardSheen 1.15s ease forwards;
+}
+
+.landing-category {
+  box-shadow: 0 16px 55px rgba(0, 0, 0, 0.18);
+}
+
+@keyframes vaultAuroraShift {
+  0% {
+    background-position: 0% 45%, center top, center;
+  }
+  100% {
+    background-position: 100% 55%, center top, center;
+  }
+}
+
+@keyframes vaultGridDrift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 86px 86px, 86px 86px;
+  }
+}
+
+@keyframes vaultPageSheen {
+  0%, 72% {
+    transform: translateX(-58%);
+    opacity: 0;
+  }
+  82% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translateX(58%);
+    opacity: 0;
+  }
+}
+
+@keyframes vaultGlowBreathe {
+  0%, 100% {
+    opacity: 0.78;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes vaultFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes vaultCardSheen {
+  0% {
+    opacity: 0;
+    transform: translateX(-55%);
+  }
+  38% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(55%);
+  }
+}

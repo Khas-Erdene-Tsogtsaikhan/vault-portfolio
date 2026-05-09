@@ -58,8 +58,12 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-vault-black text-vault-text">
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-vault-black/92 backdrop-blur-xl">
+    <main className="relative min-h-screen overflow-x-hidden bg-vault-black text-vault-text">
+      <div aria-hidden className="landing-aurora" />
+      <div aria-hidden className="landing-grid" />
+      <div aria-hidden className="landing-sheen" />
+
+      <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-vault-black/78 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="font-serif text-xl font-light uppercase tracking-[0.28em] text-vault-gold">
             VAULT
@@ -75,14 +79,14 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:px-8">
-        <div className="absolute inset-x-0 top-0 h-[680px] bg-[radial-gradient(ellipse_at_top,rgba(201,168,76,0.15),rgba(7,7,10,0)_68%)]" />
-        <div className="absolute inset-x-0 top-[390px] h-px bg-gradient-to-r from-transparent via-vault-gold/20 to-transparent" />
+      <section className="relative z-10 overflow-hidden px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:px-8">
+        <div className="landing-hero-glow" />
+        <div className="absolute inset-x-0 top-[390px] h-px bg-gradient-to-r from-transparent via-vault-gold/35 to-transparent" />
 
         <div className="relative z-10 mx-auto max-w-7xl">
           <div className="mx-auto max-w-4xl text-center">
             <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-vault-gold">Collectibles Portfolio Tracker</p>
-            <h1 className="mt-5 font-serif text-5xl font-light leading-[0.92] text-vault-text sm:text-7xl lg:text-8xl">
+            <h1 className="landing-headline mt-5 font-serif text-5xl font-light leading-[0.92] text-vault-text sm:text-7xl lg:text-8xl">
               Your collection. Your portfolio.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-vault-muted sm:text-lg">
@@ -97,9 +101,9 @@ export default function HomePage() {
                 Sign in
               </Link>
             </div>
-            <div className="mx-auto mt-7 max-w-xl border-y border-vault-gold/20 py-4">
+            <div className="landing-proof mx-auto mt-7 max-w-xl px-6 py-5">
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-vault-faint">Used by collectors tracking</p>
-              <p className="data mt-2 text-3xl text-vault-gold sm:text-5xl">$2M+</p>
+              <p className="landing-gold-text data mt-2 text-3xl sm:text-5xl">$2M+</p>
               <p className="mt-2 text-xs uppercase tracking-[0.14em] text-vault-muted">in combined collection value</p>
             </div>
           </div>
@@ -113,7 +117,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-white/[0.06] bg-[#08080c] px-4 py-16 sm:px-6 lg:px-8">
+      <section className="relative z-10 border-y border-white/[0.06] bg-[#08080c]/80 px-4 py-16 backdrop-blur-sm sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-3">
           <ValueCard icon={Database} title="Real guide values" body="Search market-tracked products, save the right condition, and keep manual estimates when a piece needs your own value." />
           <ValueCard icon={Clock3} title="Daily portfolio movement" body="Snapshots turn your collection into a real chart, so values and deltas move when the portfolio changes." />
@@ -121,7 +125,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="px-4 py-20 sm:px-6 lg:px-8">
+      <section className="relative z-10 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
@@ -143,7 +147,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="px-4 py-20 sm:px-6 lg:px-8">
+      <section className="relative z-10 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
@@ -158,7 +162,7 @@ export default function HomePage() {
           </div>
           <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {categories.map((category) => (
-              <div key={category} className="group rounded-[14px] border border-vault-gold/15 bg-[linear-gradient(135deg,rgba(201,168,76,0.08),rgba(255,255,255,0.02))] p-[1px] transition hover:-translate-y-0.5 hover:border-vault-gold/35">
+              <div key={category} className="landing-category group rounded-[14px] border border-vault-gold/15 bg-[linear-gradient(135deg,rgba(201,168,76,0.08),rgba(255,255,255,0.02))] p-[1px] transition hover:-translate-y-0.5 hover:border-vault-gold/35">
                 <div className="rounded-[13px] bg-vault-card/90 px-4 py-4">
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-sm font-medium text-vault-text">{category}</span>
@@ -172,7 +176,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-t border-white/[0.06] px-4 py-24 text-center sm:px-6 lg:px-8">
+      <section className="relative z-10 border-t border-white/[0.06] px-4 py-24 text-center sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-serif text-5xl font-light leading-none text-vault-text sm:text-7xl">
             Know what your collection is worth.
@@ -188,7 +192,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/[0.06] px-4 py-8 sm:px-6 lg:px-8">
+      <footer className="relative z-10 border-t border-white/[0.06] px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-vault-muted md:flex-row md:items-center md:justify-between">
           <div>
             <p className="font-serif text-sm uppercase tracking-[0.24em] text-vault-gold">VAULT</p>
@@ -208,7 +212,7 @@ export default function HomePage() {
 
 function DashboardPreviewImage() {
   return (
-    <div className="mx-auto max-w-7xl rounded-[24px] border border-vault-gold/20 bg-[#050507] p-2 shadow-[0_42px_150px_rgba(0,0,0,0.62)]">
+    <div className="landing-dashboard-frame mx-auto max-w-7xl rounded-[24px] border border-vault-gold/20 bg-[#050507] p-2 shadow-[0_42px_150px_rgba(0,0,0,0.62)]">
       <div className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-vault-black">
         <div className="flex items-center justify-between gap-4 border-b border-vault-border bg-white/[0.025] px-4 py-3">
           <div className="flex items-center gap-2">
@@ -240,7 +244,7 @@ function DashboardPreviewImage() {
 
 function ProductScreenshotCard({ screenshot }: { screenshot: (typeof productScreenshots)[number] }) {
   return (
-    <article className="group overflow-hidden rounded-[16px] border border-vault-border bg-vault-card transition hover:-translate-y-1 hover:border-vault-gold/35">
+    <article className="landing-product-card group overflow-hidden rounded-[16px] border border-vault-border bg-vault-card transition hover:-translate-y-1 hover:border-vault-gold/35">
       <div className="relative aspect-[16/10] overflow-hidden border-b border-vault-border bg-vault-black">
         <Image
           src={screenshot.src}
@@ -263,7 +267,7 @@ function ProductScreenshotCard({ screenshot }: { screenshot: (typeof productScre
 
 function ValueCard({ icon: Icon, title, body }: { icon: LucideIcon; title: string; body: string }) {
   return (
-    <article className="rounded-[14px] border border-vault-gold/20 bg-vault-card p-6 transition hover:-translate-y-0.5 hover:border-vault-gold/45">
+    <article className="landing-value-card rounded-[14px] border border-vault-gold/20 bg-vault-card p-6 transition hover:-translate-y-0.5 hover:border-vault-gold/45">
       <Icon size={22} className="text-vault-gold" />
       <h2 className="mt-5 text-xl font-semibold text-vault-text">{title}</h2>
       <p className="mt-3 text-sm leading-6 text-vault-muted">{body}</p>
