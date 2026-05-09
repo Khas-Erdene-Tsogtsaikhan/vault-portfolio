@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
@@ -76,8 +77,8 @@ export default function HomePage() {
           </div>
 
           <div className="mt-10">
-            <p className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-vault-faint">Live product preview</p>
-            <LiveProductPreview />
+            <p className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-vault-faint">Dashboard preview</p>
+            <DashboardPreviewImage />
           </div>
 
           <TrustStrip />
@@ -150,7 +151,7 @@ export default function HomePage() {
   );
 }
 
-function LiveProductPreview() {
+function DashboardPreviewImage() {
   return (
     <div className="mx-auto max-w-7xl rounded-[24px] border border-vault-gold/20 bg-[#050507] p-2 shadow-[0_42px_150px_rgba(0,0,0,0.62)]">
       <div className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-vault-black">
@@ -163,14 +164,17 @@ function LiveProductPreview() {
           <div className="hidden rounded-full border border-vault-border bg-vault-black px-4 py-1.5 text-[10px] uppercase tracking-[0.16em] text-vault-faint sm:block">
             vaultcollection.org/dashboard
           </div>
-          <div className="data text-[10px] text-vault-green">Actual app route</div>
+          <div className="data text-[10px] text-vault-green">Product screenshot</div>
         </div>
-        <div className="relative h-[560px] overflow-hidden bg-vault-black sm:h-[680px] lg:h-[760px]">
-          <iframe
-            src="/dashboard"
-            title="VAULT dashboard preview"
-            className="h-full w-full border-0"
-            loading="eager"
+        <div className="relative overflow-hidden bg-vault-black">
+          <Image
+            src="/landing-dashboard-preview.png"
+            alt="VAULT dashboard showing portfolio value, collection stats, and tracked assets"
+            width={1900}
+            height={940}
+            priority
+            className="h-auto w-full"
+            sizes="(max-width: 768px) 100vw, 1280px"
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-vault-black to-transparent" />
         </div>
