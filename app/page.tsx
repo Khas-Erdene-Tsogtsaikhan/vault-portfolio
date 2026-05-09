@@ -58,8 +58,11 @@ export default function HomePage() {
   }, [router]);
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-vault-black text-vault-text">
-      <header className="sticky top-0 z-50 border-b border-white/[0.06] bg-vault-black/92 backdrop-blur-xl">
+    <main className="relative min-h-screen overflow-x-hidden bg-vault-black text-vault-text">
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 bg-[radial-gradient(ellipse_at_top,rgba(201,168,76,0.13),transparent_42%),linear-gradient(180deg,#07070a_0%,#0b0b10_42%,#050507_100%)]" />
+      <div aria-hidden className="pointer-events-none fixed inset-0 z-0 opacity-[0.055] [background-image:linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:72px_72px]" />
+
+      <header className="sticky top-0 z-50 border-b border-white/[0.07] bg-vault-black/78 backdrop-blur-2xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <Link href="/" className="font-serif text-xl font-light uppercase tracking-[0.28em] text-vault-gold">
             VAULT
@@ -75,8 +78,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:px-8">
-        <div className="absolute inset-x-0 top-0 h-[680px] bg-[radial-gradient(ellipse_at_top,rgba(201,168,76,0.15),rgba(7,7,10,0)_68%)]" />
+      <section className="relative z-10 overflow-hidden px-4 pb-16 pt-14 sm:px-6 sm:pt-20 lg:px-8">
+        <div className="absolute left-1/2 top-8 h-[360px] w-[86vw] max-w-6xl -translate-x-1/2 rounded-full bg-vault-gold/10 blur-3xl" />
         <div className="absolute inset-x-0 top-[390px] h-px bg-gradient-to-r from-transparent via-vault-gold/20 to-transparent" />
 
         <div className="relative z-10 mx-auto max-w-7xl">
@@ -97,7 +100,7 @@ export default function HomePage() {
                 Sign in
               </Link>
             </div>
-            <div className="mx-auto mt-7 max-w-xl border-y border-vault-gold/20 py-4">
+            <div className="mx-auto mt-7 max-w-xl rounded-[18px] border border-vault-gold/20 bg-vault-card/45 px-6 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_24px_80px_rgba(0,0,0,0.24)] backdrop-blur">
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-vault-faint">Used by collectors tracking</p>
               <p className="data mt-2 text-3xl text-vault-gold sm:text-5xl">$2M+</p>
               <p className="mt-2 text-xs uppercase tracking-[0.14em] text-vault-muted">in combined collection value</p>
@@ -113,7 +116,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y border-white/[0.06] bg-[#08080c] px-4 py-16 sm:px-6 lg:px-8">
+      <section className="relative z-10 border-y border-white/[0.06] bg-[#08080c]/80 px-4 py-16 backdrop-blur-sm sm:px-6 lg:px-8">
         <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-3">
           <ValueCard icon={Database} title="Real guide values" body="Search market-tracked products, save the right condition, and keep manual estimates when a piece needs your own value." />
           <ValueCard icon={Clock3} title="Daily portfolio movement" body="Snapshots turn your collection into a real chart, so values and deltas move when the portfolio changes." />
@@ -121,7 +124,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="px-4 py-20 sm:px-6 lg:px-8">
+      <section className="relative z-10 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
             <div>
@@ -143,7 +146,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="px-4 py-20 sm:px-6 lg:px-8">
+      <section className="relative z-10 px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-6xl">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
@@ -172,7 +175,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-t border-white/[0.06] px-4 py-24 text-center sm:px-6 lg:px-8">
+      <section className="relative z-10 border-t border-white/[0.06] px-4 py-24 text-center sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <h2 className="font-serif text-5xl font-light leading-none text-vault-text sm:text-7xl">
             Know what your collection is worth.
@@ -188,7 +191,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="border-t border-white/[0.06] px-4 py-8 sm:px-6 lg:px-8">
+      <footer className="relative z-10 border-t border-white/[0.06] px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-5 text-sm text-vault-muted md:flex-row md:items-center md:justify-between">
           <div>
             <p className="font-serif text-sm uppercase tracking-[0.24em] text-vault-gold">VAULT</p>
@@ -208,9 +211,9 @@ export default function HomePage() {
 
 function DashboardPreviewImage() {
   return (
-    <div className="mx-auto max-w-7xl rounded-[24px] border border-vault-gold/20 bg-[#050507] p-2 shadow-[0_42px_150px_rgba(0,0,0,0.62)]">
-      <div className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-vault-black">
-        <div className="flex items-center justify-between gap-4 border-b border-vault-border bg-white/[0.025] px-4 py-3">
+    <div className="mx-auto max-w-7xl rounded-[28px] border border-vault-gold/25 bg-[linear-gradient(135deg,rgba(201,168,76,0.16),rgba(255,255,255,0.035)_42%,rgba(201,168,76,0.08))] p-[1px] shadow-[0_50px_160px_rgba(0,0,0,0.68),0_0_80px_rgba(201,168,76,0.08)]">
+      <div className="overflow-hidden rounded-[27px] border border-white/[0.07] bg-vault-black">
+        <div className="flex items-center justify-between gap-4 border-b border-vault-border bg-white/[0.035] px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-[#e06060]/70" />
             <span className="h-2.5 w-2.5 rounded-full bg-vault-gold/80" />
@@ -231,6 +234,8 @@ function DashboardPreviewImage() {
             className="h-auto w-full"
             sizes="(max-width: 768px) 100vw, 1280px"
           />
+          <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-white/[0.04]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-vault-gold/[0.055] to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-vault-black to-transparent" />
         </div>
       </div>
@@ -240,7 +245,8 @@ function DashboardPreviewImage() {
 
 function ProductScreenshotCard({ screenshot }: { screenshot: (typeof productScreenshots)[number] }) {
   return (
-    <article className="group overflow-hidden rounded-[16px] border border-vault-border bg-vault-card transition hover:-translate-y-1 hover:border-vault-gold/35">
+    <article className="group overflow-hidden rounded-[18px] border border-vault-gold/15 bg-[linear-gradient(135deg,rgba(201,168,76,0.11),rgba(255,255,255,0.025))] p-[1px] shadow-[0_28px_90px_rgba(0,0,0,0.38)] transition hover:-translate-y-1 hover:border-vault-gold/35 hover:shadow-[0_34px_110px_rgba(0,0,0,0.48)]">
+      <div className="overflow-hidden rounded-[17px] bg-vault-card">
       <div className="relative aspect-[16/10] overflow-hidden border-b border-vault-border bg-vault-black">
         <Image
           src={screenshot.src}
@@ -250,6 +256,7 @@ function ProductScreenshotCard({ screenshot }: { screenshot: (typeof productScre
           className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.025]"
           sizes="(max-width: 1024px) 100vw, 33vw"
         />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(201,168,76,0.10),transparent_60%)]" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-vault-card to-transparent" />
       </div>
       <div className="p-5">
@@ -257,13 +264,14 @@ function ProductScreenshotCard({ screenshot }: { screenshot: (typeof productScre
         <h3 className="mt-3 text-xl font-semibold text-vault-text">{screenshot.title}</h3>
         <p className="mt-3 text-sm leading-6 text-vault-muted">{screenshot.body}</p>
       </div>
+      </div>
     </article>
   );
 }
 
 function ValueCard({ icon: Icon, title, body }: { icon: LucideIcon; title: string; body: string }) {
   return (
-    <article className="rounded-[14px] border border-vault-gold/20 bg-vault-card p-6 transition hover:-translate-y-0.5 hover:border-vault-gold/45">
+    <article className="rounded-[16px] border border-vault-gold/18 bg-[linear-gradient(145deg,rgba(255,255,255,0.045),rgba(201,168,76,0.055))] p-6 shadow-[0_20px_70px_rgba(0,0,0,0.24)] transition hover:-translate-y-0.5 hover:border-vault-gold/45">
       <Icon size={22} className="text-vault-gold" />
       <h2 className="mt-5 text-xl font-semibold text-vault-text">{title}</h2>
       <p className="mt-3 text-sm leading-6 text-vault-muted">{body}</p>
