@@ -101,16 +101,14 @@ export default function HomePage() {
                 Sign in
               </Link>
             </div>
-            <div className="landing-proof mx-auto mt-7 max-w-xl px-6 py-5">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-vault-faint">Used by collectors tracking</p>
-              <p className="landing-gold-text data mt-2 text-3xl sm:text-5xl">$2M+</p>
-              <p className="mt-2 text-xs uppercase tracking-[0.14em] text-vault-muted">in combined collection value</p>
-            </div>
           </div>
 
           <div className="mt-10">
-            <p className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-vault-faint">Dashboard preview</p>
-            <DashboardPreviewImage />
+            <p className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-vault-faint">Dashboard demo</p>
+            <DashboardPreviewVideo />
+            <p className="landing-proof-line mt-6 text-center text-xs uppercase tracking-[0.16em] text-vault-muted">
+              Used by collectors tracking <span className="landing-gold-text data text-base sm:text-lg">$2M+</span> in combined collection value
+            </p>
           </div>
 
           {checkingSession ? <p className="mt-5 text-center text-[10px] uppercase tracking-[0.12em] text-vault-faint">Checking session...</p> : null}
@@ -210,7 +208,7 @@ export default function HomePage() {
   );
 }
 
-function DashboardPreviewImage() {
+function DashboardPreviewVideo() {
   return (
     <div className="landing-dashboard-frame mx-auto max-w-7xl rounded-[24px] border border-vault-gold/20 bg-[#050507] p-2 shadow-[0_42px_150px_rgba(0,0,0,0.62)]">
       <div className="overflow-hidden rounded-[18px] border border-white/[0.07] bg-vault-black">
@@ -223,17 +221,19 @@ function DashboardPreviewImage() {
           <div className="hidden rounded-full border border-vault-border bg-vault-black px-4 py-1.5 text-[10px] uppercase tracking-[0.16em] text-vault-faint sm:block">
             vaultcollection.org/dashboard
           </div>
-          <div className="data text-[10px] text-vault-green">Product screenshot</div>
+          <div className="data text-[10px] text-vault-green">Product demo</div>
         </div>
         <div className="relative overflow-hidden bg-vault-black">
-          <Image
-            src="/landing-dashboard-preview.png"
-            alt="VAULT dashboard showing portfolio value, collection stats, and tracked assets"
-            width={1900}
-            height={940}
-            priority
+          <video
             className="h-auto w-full"
-            sizes="(max-width: 768px) 100vw, 1280px"
+            src="/landing-demo.mp4"
+            poster="/landing-dashboard-preview.png"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            aria-label="VAULT dashboard demo showing the portfolio tracker in use"
           />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-vault-black to-transparent" />
         </div>

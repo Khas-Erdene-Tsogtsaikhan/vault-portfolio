@@ -213,25 +213,26 @@ textarea {
 .landing-aurora {
   z-index: 0;
   background:
-    linear-gradient(115deg, rgba(201, 168, 76, 0.16), transparent 28%, rgba(80, 201, 138, 0.08) 48%, transparent 66%, rgba(226, 196, 122, 0.10)),
-    radial-gradient(ellipse at 50% 0%, rgba(201, 168, 76, 0.13), transparent 56%),
+    linear-gradient(115deg, rgba(201, 168, 76, 0.10), transparent 30%, rgba(80, 201, 138, 0.04) 50%, transparent 68%, rgba(226, 196, 122, 0.06)),
+    radial-gradient(ellipse at 50% 0%, rgba(201, 168, 76, 0.10), transparent 58%),
     linear-gradient(180deg, #07070a 0%, #0b0b10 48%, #050507 100%);
   background-size: 180% 180%, 100% 100%, 100% 100%;
-  animation: vaultAuroraShift 18s ease-in-out infinite alternate;
+  animation: vaultAuroraShift 32s ease-in-out infinite alternate;
 }
 
 .landing-grid {
   z-index: 1;
-  opacity: 0.11;
+  opacity: 0.07;
   background-image:
     linear-gradient(rgba(226, 196, 122, 0.6) 1px, transparent 1px),
     linear-gradient(90deg, rgba(226, 196, 122, 0.5) 1px, transparent 1px);
   background-size: 86px 86px;
   mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.7), transparent 62%);
-  animation: vaultGridDrift 28s linear infinite;
+  animation: vaultGridDrift 80s linear infinite;
 }
 
 .landing-sheen {
+  display: none;
   z-index: 2;
   background: linear-gradient(105deg, transparent 0%, transparent 42%, rgba(255, 255, 255, 0.055) 50%, transparent 58%, transparent 100%);
   transform: translateX(-55%);
@@ -245,7 +246,7 @@ textarea {
   background:
     radial-gradient(ellipse at center top, rgba(201, 168, 76, 0.18), transparent 58%),
     linear-gradient(to bottom, rgba(80, 201, 138, 0.035), transparent 42%);
-  animation: vaultGlowBreathe 5.5s ease-in-out infinite;
+  animation: vaultGlowBreathe 9s ease-in-out infinite;
 }
 
 .landing-headline {
@@ -262,6 +263,7 @@ textarea {
 }
 
 .landing-proof,
+.landing-proof-line,
 .landing-dashboard-frame,
 .landing-product-card,
 .landing-value-card,
@@ -298,14 +300,14 @@ textarea {
 }
 
 .landing-proof::after {
-  animation: vaultCardSheen 7s ease-in-out infinite;
+  animation: none;
 }
 
 .landing-dashboard-frame {
-  animation: vaultFloat 7s ease-in-out infinite;
+  animation: vaultFloat 12s ease-in-out infinite;
   box-shadow:
-    0 45px 150px rgba(0, 0, 0, 0.68),
-    0 0 90px rgba(201, 168, 76, 0.10),
+    0 40px 130px rgba(0, 0, 0, 0.62),
+    0 0 70px rgba(201, 168, 76, 0.08),
     inset 0 0 0 1px rgba(255, 255, 255, 0.025);
 }
 
@@ -322,7 +324,7 @@ textarea {
 
 .landing-product-card,
 .landing-value-card {
-  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  box-shadow: 0 20px 64px rgba(0, 0, 0, 0.24);
 }
 
 .landing-product-card:hover::after,
@@ -333,6 +335,10 @@ textarea {
 
 .landing-category {
   box-shadow: 0 16px 55px rgba(0, 0, 0, 0.18);
+}
+
+.landing-proof-line {
+  text-shadow: 0 12px 40px rgba(0, 0, 0, 0.34);
 }
 
 @keyframes vaultAuroraShift {
@@ -381,7 +387,20 @@ textarea {
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-aurora,
+  .landing-grid,
+  .landing-hero-glow,
+  .landing-dashboard-frame,
+  .landing-proof::after,
+  .landing-product-card:hover::after,
+  .landing-value-card:hover::after,
+  .landing-category:hover::after {
+    animation: none;
   }
 }
 
