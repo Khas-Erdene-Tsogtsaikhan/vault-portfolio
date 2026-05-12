@@ -70,43 +70,43 @@ export function DashboardClient() {
   if (!items.length) {
     return (
       <AppShell>
-        <section className="vault-hero mb-4 overflow-hidden rounded-[14px] border border-vault-gold-dim p-5 sm:mb-7 sm:p-11 lg:p-12">
+        <section className="vault-hero mb-3 overflow-hidden rounded-[14px] border border-vault-gold-dim p-4 sm:mb-7 sm:p-11 lg:p-12">
           <div className="relative z-10">
-            <div className="flex flex-col justify-between gap-6 sm:flex-row">
+            <div className="flex flex-col justify-between gap-3 sm:gap-6 sm:flex-row">
               <div>
                 <p className="hero-label"><span className="live-dot opacity-40" />Preview Portfolio</p>
-                <h1 className="mt-2 max-w-4xl font-serif text-[36px] font-light leading-none text-vault-text/45 sm:text-[72px]">
+                <h1 className="mt-2 max-w-4xl font-serif text-[30px] font-light leading-none text-vault-text/45 sm:text-[72px]">
                   {preciseCurrency.format(12840)}
                 </h1>
-                <div className="mt-2 inline-flex items-center gap-2 rounded border border-vault-green/10 bg-vault-green/5 px-3 py-1.5 font-mono text-[13px] text-vault-green/55">
+                <div className="mt-2 inline-flex items-center gap-2 rounded border border-vault-green/10 bg-vault-green/5 px-2.5 py-1 font-mono text-[11px] text-vault-green/55 sm:px-3 sm:py-1.5 sm:text-[13px]">
                   +{preciseCurrency.format(phantomMove.delta)} ({percent.format(phantomMove.deltaPct)}) {range}
                 </div>
-                <p className="mt-3 max-w-2xl text-xs leading-5 text-vault-muted">
+                <p className="mt-2 max-w-2xl text-xs leading-5 text-vault-muted sm:mt-3">
                   Preview mode. These numbers are sample projections only. Add one real asset and this dashboard becomes your live Vault.
                 </p>
               </div>
-              <Link href="/add" className="inline-flex h-10 items-center justify-center gap-2 rounded bg-vault-gold px-5 text-xs font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light">
+              <Link href="/add" className="inline-flex h-9 items-center justify-center gap-2 rounded bg-vault-gold px-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light sm:h-10 sm:px-5 sm:text-xs">
                 <Plus size={15} />
                 Add First Asset
               </Link>
             </div>
 
-            <div className="mt-6 grid gap-3 sm:mt-8 lg:grid-cols-[minmax(0,1.5fr)_360px]">
+            <div className="mt-4 grid gap-3 sm:mt-8 lg:grid-cols-[minmax(0,1.5fr)_360px]">
               <div className="rounded-[12px] border border-vault-border/70 bg-vault-black/70 p-3 opacity-75 sm:p-4">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="section-label">Phantom Performance</p>
-                    <p className="mt-1 text-sm text-vault-text/50">A sample of what your portfolio timeline will feel like.</p>
+                    <p className="mt-1 hidden text-sm text-vault-text/50 sm:block">A sample of what your portfolio timeline will feel like.</p>
                   </div>
                   <div className="flex overflow-x-auto rounded border border-vault-border bg-vault-black p-1">
                     {ranges.map((item) => (
-                      <button key={item} onClick={() => setRange(item)} className={`rounded px-3 py-2 font-mono text-[11px] transition ${range === item ? "bg-vault-gold/35 text-vault-text" : "text-vault-faint hover:text-vault-muted"}`}>
+                        <button key={item} onClick={() => setRange(item)} className={`rounded px-2 py-1.5 font-mono text-[10px] transition sm:px-3 sm:py-2 sm:text-[11px] ${range === item ? "bg-vault-gold/35 text-vault-text" : "text-vault-faint hover:text-vault-muted"}`}>
                         {item}
                       </button>
                     ))}
                   </div>
                 </div>
-                <div className="h-[230px] sm:h-[320px]">
+                <div className="h-[180px] sm:h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={phantomHistory} margin={{ top: 14, right: 10, bottom: 8, left: 0 }}>
                       <defs>
@@ -135,12 +135,12 @@ export function DashboardClient() {
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
-                <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-vault-faint">Preview data only - real tracking starts with your first item</p>
+                <p className="mt-2 text-[9px] uppercase tracking-[0.1em] text-vault-faint sm:text-[10px] sm:tracking-[0.12em]">Preview only - real tracking starts with your first item</p>
               </div>
 
               <div className="grid gap-3">
                 {phantomHoldings.map((item) => (
-                  <div key={item.name} className="rounded-[10px] border border-vault-border/70 bg-vault-card/55 p-4 opacity-70">
+                  <div key={item.name} className="rounded-[10px] border border-vault-border/70 bg-vault-card/55 p-3 opacity-70 sm:p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
                         <p className="text-sm font-medium text-vault-text/60">{item.name}</p>
@@ -186,12 +186,12 @@ export function DashboardClient() {
         ) : null}
       </AnimatePresence>
 
-      <section className={`vault-hero mb-4 rounded-[14px] border border-vault-gold-dim p-5 transition-colors sm:mb-7 sm:p-11 lg:p-12 ${heroAnimating ? (heroDeltaPositive ? "vault-hero-animating-up" : "vault-hero-animating-down") : ""}`}>
+      <section className={`vault-hero mb-3 rounded-[14px] border border-vault-gold-dim p-4 transition-colors sm:mb-7 sm:p-11 lg:p-12 ${heroAnimating ? (heroDeltaPositive ? "vault-hero-animating-up" : "vault-hero-animating-down") : ""}`}>
         <div className="relative z-10">
-          <div className="flex flex-col justify-between gap-6 sm:flex-row">
+          <div className="flex flex-col justify-between gap-3 sm:gap-6 sm:flex-row">
             <div>
               <p className="hero-label"><span className={`live-dot ${heroAnimating ? "live-dot-solid" : ""}`} />Portfolio Value</p>
-              <h1 className="relative mt-2 max-w-4xl break-words font-serif text-[36px] font-light leading-none sm:text-[72px]">
+              <h1 className="relative mt-1 max-w-4xl break-words font-serif text-[30px] font-light leading-none sm:mt-2 sm:text-[72px]">
                 <AnimatePresence>
                   {lastAddedItem ? (
                     <motion.span
@@ -214,18 +214,18 @@ export function DashboardClient() {
                   onEnd={() => setHeroAnimating(false)}
                 />
               </h1>
-              <div className={`mt-2 inline-flex items-center gap-2 rounded border px-3 py-1.5 font-mono text-[13px] ${metrics.todayDelta >= 0 ? "border-vault-green/20 bg-vault-green/10 text-vault-green" : "border-vault-border bg-vault-surface text-vault-muted"}`}>
+              <div className={`mt-2 inline-flex items-center gap-1.5 rounded border px-2.5 py-1 font-mono text-[11px] sm:gap-2 sm:px-3 sm:py-1.5 sm:text-[13px] ${metrics.todayDelta >= 0 ? "border-vault-green/20 bg-vault-green/10 text-vault-green" : "border-vault-border bg-vault-surface text-vault-muted"}`}>
                 {metrics.todayDelta >= 0 ? "▲" : "▼"} {metrics.todayDelta >= 0 ? "+" : ""}{preciseCurrency.format(metrics.todayDelta)} ({metrics.todayDeltaPercent >= 0 ? "+" : ""}{percent.format(metrics.todayDeltaPercent)}) Today
               </div>
-              <p className="mt-3 max-w-2xl text-xs leading-5 text-vault-muted">{trustSummary}</p>
+              <p className="mt-3 hidden max-w-2xl text-xs leading-5 text-vault-muted sm:block">{trustSummary}</p>
             </div>
-            <Link href="/add" className="inline-flex h-10 items-center justify-center gap-2 rounded bg-vault-gold px-5 text-xs font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light">
+            <Link href="/add" className="inline-flex h-9 items-center justify-center gap-2 rounded bg-vault-gold px-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-vault-black transition hover:bg-vault-gold-light sm:h-10 sm:px-5 sm:text-xs">
               <Plus size={15} />
               Add Item
             </Link>
           </div>
 
-          <div className="mt-6 grid grid-cols-2 gap-4 sm:mt-8 sm:flex sm:flex-wrap sm:gap-10">
+          <div className="mt-4 grid grid-cols-4 gap-2 sm:mt-8 sm:flex sm:flex-wrap sm:gap-10">
             <HeroStat value={metrics.itemCount.toString()} label="Items owned" />
             <HeroStat value={currency.format(metrics.totalValue / Math.max(metrics.itemCount, 1))} label="Avg. item value" />
             <HeroStat value={bestReturnValue} label="Best return ever" tone="green" />
@@ -234,24 +234,24 @@ export function DashboardClient() {
         </div>
       </section>
 
-      <section className="mb-4 grid gap-3 sm:mb-7 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-3 grid grid-cols-2 gap-2 sm:mb-7 sm:gap-3 md:grid-cols-2 xl:grid-cols-4">
         <PrideCard icon={Crown} label="Crown Jewel" title={metrics.topItem.name} value={compactCurrency.format(getCurrentValue(metrics.topItem))} detail={`${percent.format(getItemReturn(metrics.topItem).percentage)} since you paid ${compactCurrency.format(metrics.topItem.costBasis)}`} featured />
         <PrideCard icon={Flame} label="Hottest Category" title={metrics.hottestCategory ? metrics.hottestCategory.category.replace("_", " ") : "None"} value={metrics.hottestCategory ? percent.format(metrics.hottestCategory.returnPercentage) : "0%"} detail="Best performing category right now" />
         <PrideCard icon={Gem} label="Rarest Piece" title={metrics.rarestPiece.name} value={metrics.rarestPiece.editionTotal ? `#${metrics.rarestPiece.editionNumber}/${metrics.rarestPiece.editionTotal}` : "Unique"} detail="Scarcity signal in your vault" />
         <PrideCard icon={Trophy} label="Acquisition Streak" title={`${metrics.acquisitionStreak} month${metrics.acquisitionStreak === 1 ? "" : "s"}`} value={metrics.acquisitionStreak ? "Active" : "Ready"} detail={metrics.acquisitionStreak ? "Consecutive months adding pieces" : "Add another asset this month to start a streak"} />
       </section>
 
-      <section className="mb-4 vault-panel overflow-hidden rounded-[12px] sm:mb-7">
-        <div className="border-b border-vault-border p-4 sm:p-6">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <section className="mb-3 vault-panel overflow-hidden rounded-[12px] sm:mb-7">
+        <div className="border-b border-vault-border p-3 sm:p-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="section-label">Live Portfolio Performance</p>
-              <h2 className="mt-2 font-serif text-3xl font-light text-vault-text sm:text-5xl">Your collection is moving like a market.</h2>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-vault-muted">This is the daily-open hook: total value, today&apos;s delta, category benchmarks, and the proof behind what moved.</p>
+              <h2 className="mt-1 font-serif text-2xl font-light text-vault-text sm:mt-2 sm:text-5xl">Your collection is moving like a market.</h2>
+              <p className="mt-3 hidden max-w-2xl text-sm leading-6 text-vault-muted sm:block">This is the daily-open hook: total value, today&apos;s delta, category benchmarks, and the proof behind what moved.</p>
             </div>
             <div className="flex overflow-x-auto rounded border border-vault-border bg-vault-black p-1">
               {ranges.map((item) => (
-                <button key={item} onClick={() => setRange(item)} className={`rounded px-3 py-2 font-mono text-[11px] transition ${range === item ? "bg-vault-gold text-vault-black" : "text-vault-muted hover:text-vault-text"}`}>
+                <button key={item} onClick={() => setRange(item)} className={`rounded px-2 py-1.5 font-mono text-[10px] transition sm:px-3 sm:py-2 sm:text-[11px] ${range === item ? "bg-vault-gold text-vault-black" : "text-vault-muted hover:text-vault-text"}`}>
                   {item}
                 </button>
               ))}
@@ -261,12 +261,12 @@ export function DashboardClient() {
 
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1.45fr)_440px]">
           <div className="border-b border-vault-border p-3 sm:p-6 xl:border-b-0 xl:border-r">
-            <div className="mb-4 grid gap-3 sm:grid-cols-3">
+            <div className="mb-3 grid grid-cols-3 gap-2 sm:mb-4 sm:gap-3">
               <IndexCard label={`${range} Move`} value={`${rangeMove.delta >= 0 ? "+" : ""}${preciseCurrency.format(rangeMove.delta)}`} detail={`${rangeMove.deltaPct >= 0 ? "+" : ""}${percent.format(rangeMove.deltaPct)} across selected range`} tone={rangeMove.delta >= 0 ? "green" : "muted"} />
               <IndexCard label={index.name} value={percent.format(index.ytdReturn)} detail={`${percent.format(index.todayReturn)} today`} tone={index.ytdReturn >= 0 ? "green" : "muted"} />
               <IndexCard label="Benchmark" value={beatingMarket ? "Beating market ↑" : "Building history"} detail={`${percent.format(metrics.totalReturnPercent - index.ytdReturn)} spread`} tone={beatingMarket ? "gold" : "muted"} />
             </div>
-            <div className="flex h-[250px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-2 sm:h-[430px] sm:p-3">
+            <div className="flex h-[190px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-2 sm:h-[430px] sm:p-3">
               <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={rangeHistory} margin={{ top: 18, right: 10, bottom: 8, left: 0 }}>
@@ -296,15 +296,15 @@ export function DashboardClient() {
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
-              <p className="mt-2 text-[10px] uppercase tracking-[0.12em] text-vault-faint">Source: portfolio snapshots + item price history · {range} range · hover for exact timestamp</p>
+              <p className="mt-2 hidden text-[10px] uppercase tracking-[0.12em] text-vault-faint sm:block">Source: portfolio snapshots + item price history · {range} range · hover for exact timestamp</p>
             </div>
           </div>
 
           <aside className="grid gap-0">
-            <div className="border-b border-vault-border p-5">
+            <div className="border-b border-vault-border p-3 sm:p-5">
               <CategoryBars data={breakdown} />
             </div>
-            <div className="p-5">
+            <div className="p-3 sm:p-5">
               <p className="section-label">Market Data Feed</p>
               <div className="mt-4 space-y-3">
                 {marketActivity.map((activity) => (
@@ -374,9 +374,9 @@ export function DashboardClient() {
 function HeroStat({ value, label, tone = "text" }: { value: string; label: string; tone?: "text" | "green" | "gold" }) {
   const color = tone === "green" ? "text-vault-green" : tone === "gold" ? "text-vault-gold" : "text-vault-text";
   return (
-    <div>
-      <div className={`data mb-0.5 text-base sm:text-[19px] ${color}`}>{value}</div>
-      <div className="text-[10px] uppercase tracking-[0.08em] text-vault-faint">{label}</div>
+    <div className="min-w-0">
+      <div className={`data mb-0.5 truncate text-[13px] sm:text-[19px] ${color}`}>{value}</div>
+      <div className="text-[8px] uppercase tracking-[0.05em] text-vault-faint sm:text-[10px] sm:tracking-[0.08em]">{label}</div>
     </div>
   );
 }
@@ -384,10 +384,10 @@ function HeroStat({ value, label, tone = "text" }: { value: string; label: strin
 function IndexCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "green" | "muted" | "gold" }) {
   const color = tone === "green" ? "text-vault-green" : tone === "muted" ? "text-vault-muted" : "text-vault-gold";
   return (
-    <div className="rounded-[8px] border border-vault-border bg-vault-surface p-3 sm:p-4">
+    <div className="rounded-[8px] border border-vault-border bg-vault-surface p-2 sm:p-4">
       <p className="section-label">{label}</p>
-      <p className={`data mt-2 text-base sm:text-xl ${color}`}>{value}</p>
-      <p className="mt-1 text-xs text-vault-muted">{detail}</p>
+      <p className={`data mt-1 truncate text-[12px] sm:mt-2 sm:text-xl ${color}`}>{value}</p>
+      <p className="mt-1 hidden text-xs text-vault-muted sm:block">{detail}</p>
     </div>
   );
 }
@@ -395,7 +395,7 @@ function IndexCard({ label, value, detail, tone }: { label: string; value: strin
 function PrideCard({ icon: Icon, label, title, value, detail, featured = false }: { icon: LucideIcon; label: string; title: string; value: string; detail: string; featured?: boolean }) {
   return (
     <motion.article
-      className={`relative overflow-hidden rounded-[10px] border p-4 transition hover:-translate-y-0.5 sm:p-5 ${
+      className={`relative overflow-hidden rounded-[10px] border p-3 transition hover:-translate-y-0.5 sm:p-5 ${
         featured ? "border-vault-gold-dim bg-gradient-to-br from-[#120e04] to-vault-card" : "border-vault-border bg-vault-card hover:border-vault-bright hover:bg-vault-hover"
       }`}
       initial={{ opacity: 0, y: 14 }}
@@ -403,13 +403,13 @@ function PrideCard({ icon: Icon, label, title, value, detail, featured = false }
       transition={{ duration: 0.45 }}
     >
       <div className="flex items-center justify-between">
-        <Icon size={22} className="text-vault-gold" />
+        <Icon size={18} className="text-vault-gold sm:size-[22px]" />
         {featured ? <span className="rounded bg-vault-gold/10 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-vault-gold">All time high</span> : null}
       </div>
-      <p className="section-label mt-3">{label}</p>
-      <h3 className="mt-1 min-h-0 font-serif text-[22px] font-normal leading-tight text-vault-text sm:min-h-14 sm:text-[26px]">{title}</h3>
+      <p className="section-label mt-2 sm:mt-3">{label}</p>
+      <h3 className="mt-1 line-clamp-2 min-h-10 font-serif text-[18px] font-normal leading-tight text-vault-text sm:min-h-14 sm:text-[26px]">{title}</h3>
       <p className="data mt-2 text-sm text-vault-gold">{value}</p>
-      <p className="mt-1 text-[11px] leading-5 text-vault-muted">{detail}</p>
+      <p className="mt-1 hidden text-[11px] leading-5 text-vault-muted sm:block">{detail}</p>
     </motion.article>
   );
 }
