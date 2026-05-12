@@ -186,10 +186,10 @@ export function AddItemWizard() {
   const manualValue = Number(form.currentValueUser || form.costBasis || 0);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
-      <section className="vault-panel rounded-lg p-5">
+    <div className="grid gap-4 sm:gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <section className="vault-panel rounded-lg p-4 sm:p-5">
         <p className="section-label">Add to Portfolio</p>
-        <h1 className="mt-2 font-serif text-4xl font-light leading-none text-vault-text sm:text-5xl">Search, select, and add positions to your Vault.</h1>
+        <h1 className="mt-2 font-serif text-3xl font-light leading-tight text-vault-text sm:text-5xl sm:leading-none">Search, select, and add positions to your Vault.</h1>
         {!items.length ? (
           <div className="mt-5 rounded-[10px] border border-vault-gold/25 bg-vault-gold/10 p-4">
             <p className="section-label">First Asset Onboarding</p>
@@ -197,14 +197,14 @@ export function AddItemWizard() {
           </div>
         ) : null}
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-3 gap-2 sm:mt-6 sm:gap-3">
           <MethodButton active={method === "search"} icon={Search} label="Search" onClick={() => setMethod("search")} />
           <MethodButton active={method === "manual"} icon={Sparkles} label="Manual" onClick={() => setMethod("manual")} />
           <MethodButton active={method === "barcode"} icon={Barcode} label="Barcode" onClick={prefillFromBarcode} />
         </div>
 
         {method === "search" ? (
-          <div className="mt-6 rounded-[10px] border border-vault-border bg-vault-black p-4">
+          <div className="mt-5 rounded-[10px] border border-vault-border bg-vault-black p-3 sm:mt-6 sm:p-4">
             <p className="section-label">Search Worth First</p>
             <p className="mt-2 text-sm text-vault-muted">Search PriceCharting guide values, pick more than one result, and review your selected positions in the tray before adding them.</p>
             <div className="mt-4">
@@ -240,7 +240,7 @@ export function AddItemWizard() {
       <AnimatePresence>
         {tierCelebration ? (
           <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-vault-black/90 p-6 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="max-w-xl rounded-[14px] border border-vault-gold-dim bg-gradient-to-br from-[#120e04] to-vault-card p-10 text-center" initial={{ scale: 0.9, y: 24 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 180, damping: 18 }}>
+            <motion.div className="max-w-xl rounded-[14px] border border-vault-gold-dim bg-gradient-to-br from-[#120e04] to-vault-card p-6 text-center sm:p-10" initial={{ scale: 0.9, y: 24 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 180, damping: 18 }}>
               <p className="hero-label justify-center before:hidden">Tier Upgrade</p>
               <h2 className="mt-4 font-serif text-4xl font-light text-vault-gold sm:text-6xl">{tierCelebration}</h2>
               <p className="mt-4 text-vault-muted">Your collection has crossed into a new class of physical wealth.</p>
@@ -249,7 +249,7 @@ export function AddItemWizard() {
         ) : null}
         {addCelebration && !tierCelebration ? (
           <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-vault-black/85 p-6 backdrop-blur-xl" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="max-w-lg rounded-[14px] border border-vault-gold-dim bg-vault-card p-8 text-center" initial={{ scale: 0.94, y: 22 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 190, damping: 18 }}>
+            <motion.div className="max-w-lg rounded-[14px] border border-vault-gold-dim bg-vault-card p-6 text-center sm:p-8" initial={{ scale: 0.94, y: 22 }} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 190, damping: 18 }}>
               <p className="hero-label justify-center before:hidden">Vault Updated</p>
               <h2 className="mt-4 font-serif text-4xl font-light text-vault-text sm:text-5xl">{addCelebration.count} {addCelebration.count === 1 ? "asset" : "assets"} secured.</h2>
               <p className="data mt-4 text-3xl text-vault-gold sm:text-4xl">{currency.format(addCelebration.value)}</p>
@@ -258,7 +258,7 @@ export function AddItemWizard() {
             </motion.div>
           </motion.div>
         ) : null}
-        {toast ? <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed bottom-6 right-6 z-50 max-w-sm rounded-lg border border-vault-gold/35 bg-vault-card p-4 text-sm leading-6 text-vault-text">{toast}</motion.div> : null}
+        {toast ? <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed inset-x-3 bottom-20 z-50 rounded-lg border border-vault-gold/35 bg-vault-card p-4 text-sm leading-6 text-vault-text sm:inset-x-auto sm:bottom-6 sm:right-6 sm:max-w-sm">{toast}</motion.div> : null}
       </AnimatePresence>
     </div>
   );
@@ -464,9 +464,9 @@ function MiniUpload({ label, accept, onChange }: { label: string; accept: string
 function SummaryPanel({ value, cost, count }: { value: number; cost: number; count: number }) {
   const gain = value - cost;
   return (
-    <div className="rounded-lg border border-vault-border bg-vault-black p-4">
+    <div className="rounded-lg border border-vault-border bg-vault-black p-3 sm:p-4">
       <p className="section-label">Immediate Portfolio Weight</p>
-      <p className="data mt-3 text-4xl text-vault-gold">{currency.format(value)}</p>
+      <p className="data mt-3 text-3xl text-vault-gold sm:text-4xl">{currency.format(value)}</p>
       <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
         <span className="text-vault-muted">Positions <b className="data text-vault-text">{count}</b></span>
         <span className={gain >= 0 ? "text-vault-green" : "text-vault-muted"}>{gain >= 0 ? "+" : ""}{currency.format(gain)}</span>
@@ -481,16 +481,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function MethodButton({ active, icon: Icon, label, onClick }: { active: boolean; icon: typeof Sparkles; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`rounded-md border p-4 text-left transition ${active ? "border-vault-gold bg-vault-gold/10 text-vault-gold" : "border-vault-border bg-vault-surface text-vault-muted hover:border-vault-bright"}`}>
+    <button onClick={onClick} className={`rounded-md border p-3 text-left transition sm:p-4 ${active ? "border-vault-gold bg-vault-gold/10 text-vault-gold" : "border-vault-border bg-vault-surface text-vault-muted hover:border-vault-bright"}`}>
       <Icon size={18} />
-      <span className="mt-3 block text-sm font-semibold">{label}</span>
+      <span className="mt-2 block text-xs font-semibold sm:mt-3 sm:text-sm">{label}</span>
     </button>
   );
 }
 
 function UploadBox({ label, detail, accept, multiple, onChange }: { label: string; detail: string; accept: string; multiple: boolean; onChange: (files: File[]) => void }) {
   return (
-    <label className="vault-panel block cursor-pointer rounded-lg p-5">
+    <label className="vault-panel block cursor-pointer rounded-lg p-4 sm:p-5">
       <FileUp className="text-vault-gold" />
       <span className="mt-3 block font-semibold text-vault-text">{label}</span>
       <span className="mt-2 block text-sm leading-6 text-vault-muted">{detail}</span>
@@ -503,7 +503,7 @@ function DocumentUploadBox({ onChange }: { onChange: (documents: Array<{ file: F
   const [type, setType] = useState<VaultDocument["type"]>("receipt");
   const [count, setCount] = useState(0);
   return (
-    <div className="vault-panel rounded-lg p-5">
+    <div className="vault-panel rounded-lg p-4 sm:p-5">
       <FileUp className="text-vault-gold" />
       <span className="mt-3 block font-semibold text-vault-text">Documents</span>
       <span className="mt-2 block text-sm leading-6 text-vault-muted">Optional receipts, certificates, appraisals, or records with type labels.</span>

@@ -116,9 +116,9 @@ export function AnalyticsClient() {
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.35 }}>
         <section className="vault-panel mb-6 overflow-hidden rounded-[12px] border-vault-gold-dim">
           <div className="grid gap-0 xl:grid-cols-[0.88fr_1.12fr]">
-            <motion.div className="border-b border-vault-border p-6 sm:p-8 xl:border-b-0 xl:border-r" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+            <motion.div className="border-b border-vault-border p-4 sm:p-8 xl:border-b-0 xl:border-r" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
               <p className="section-label">Portfolio Performance Command Center</p>
-              <h1 className="mt-4 font-serif text-[50px] font-light leading-none text-vault-text sm:text-[82px]">
+              <h1 className="mt-4 break-words font-serif text-[36px] font-light leading-none text-vault-text sm:text-[82px]">
                 <AnimatedNumber value={metrics.totalValue} formatter={(value) => currency.format(value)} className="font-serif font-light" />
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-vault-muted">You built a portfolio of physical positions. VAULT turns every object into performance, allocation, and conviction.</p>
@@ -130,7 +130,7 @@ export function AnalyticsClient() {
                 <DeltaPill label="This year" amount={analytics.yearDelta} percentage={analytics.yearDeltaPercent} delay={2.2} muted />
               </div>
 
-              <div className="mt-7 space-y-3 rounded-[10px] border border-vault-border bg-vault-black p-4">
+              <div className="mt-5 space-y-3 rounded-[10px] border border-vault-border bg-vault-black p-3 sm:mt-7 sm:p-4">
                 <ComparisonLine label="vs S&P 500 this year" benchmark={0.243} collection={analytics.yearDeltaPercent} />
                 <ComparisonLine label={`vs ${categoryIndex.name} YTD`} benchmark={categoryIndex.ytdReturn} collection={analytics.yearDeltaPercent} />
               </div>
@@ -142,7 +142,7 @@ export function AnalyticsClient() {
                   <p className="section-label">Total Portfolio Value</p>
                   <p className={`data mt-1 text-sm ${rangeMove.delta >= 0 ? "text-vault-green" : "text-vault-muted"}`}>{rangeMove.delta >= 0 ? "+" : ""}{preciseCurrency.format(rangeMove.delta)} · {rangeMove.deltaPct >= 0 ? "+" : ""}{percent.format(rangeMove.deltaPct)} {range}</p>
                 </div>
-                <div className="flex rounded border border-vault-border bg-vault-black p-1">
+                <div className="flex overflow-x-auto rounded border border-vault-border bg-vault-black p-1">
                   {ranges.map((item) => (
                     <button key={item} onClick={() => setRange(item)} className={`rounded px-3 py-2 font-mono text-[11px] transition ${range === item ? "bg-vault-gold text-vault-black" : "text-vault-muted hover:text-vault-text"}`}>
                       {item}
@@ -150,7 +150,7 @@ export function AnalyticsClient() {
                   ))}
                 </div>
               </div>
-              <div className="flex h-[360px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-3 sm:h-[440px]">
+              <div className="flex h-[250px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-2 sm:h-[440px] sm:p-3">
                 <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={rangeHistory} margin={{ top: 14, right: 8, bottom: 8, left: 0 }}>

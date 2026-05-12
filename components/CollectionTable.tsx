@@ -67,7 +67,7 @@ export function CollectionTable() {
 
   return (
     <div>
-      <section className="mb-4 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+      <section className="mb-3 flex flex-col justify-between gap-3 sm:mb-4 sm:flex-row sm:items-center">
         <div className="flex gap-1 overflow-x-auto">
           <button onClick={() => setCategory("all")} className={`vault-pill ${category === "all" ? "vault-pill-active" : ""}`}>All</button>
           {categories.slice(0, 7).map((itemCategory) => (
@@ -128,9 +128,9 @@ export function CollectionTable() {
               key={item.id}
               initial={item.id === lastAdded ? { opacity: 0, y: -18 } : false}
               animate={{ opacity: 1, y: 0 }}
-              className={`grid gap-4 border-b border-vault-border bg-vault-card px-4 py-3.5 transition last:border-b-0 hover:bg-vault-gold/5 lg:grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr_42px] lg:items-center ${selected ? "bg-vault-gold/10" : ""}`}
+              className={`grid gap-3 border-b border-vault-border bg-vault-card px-3 py-3 transition last:border-b-0 hover:bg-vault-gold/5 sm:px-4 sm:py-3.5 lg:grid-cols-[32px_1.3fr_0.75fr_0.72fr_0.75fr_0.7fr_0.85fr_42px] lg:items-center ${selected ? "bg-vault-gold/10" : ""}`}
             >
-              <label className="flex items-center">
+              <label className="flex items-center lg:block">
                 <input
                   type="checkbox"
                   checked={selected}
@@ -139,21 +139,23 @@ export function CollectionTable() {
                   aria-label={`Select ${item.name}`}
                 />
               </label>
-              <Link href={`/collection/${item.id}`} className="flex items-center gap-4">
-                <div className="relative h-10 w-10 overflow-hidden rounded-md border border-vault-border">
+              <Link href={`/collection/${item.id}`} className="flex min-w-0 items-center gap-3 sm:gap-4">
+                <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-md border border-vault-border sm:h-10 sm:w-10">
                   <AssetImage src={imageUrl} alt={item.name} sizes="64px" />
                 </div>
-                <span>
-                  <span className="block text-[13px] font-medium text-vault-text">{item.name}</span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-medium text-vault-text">{item.name}</span>
                   <span className="mt-0.5 block text-[11px] text-vault-faint">{item.brand} · {item.referenceNumber ?? "No ref"}</span>
                 </span>
               </Link>
-              <span><Badge tone="muted">{categoryLabel(item.category)}</Badge></span>
-              <span>
+              <span className="hidden lg:block"><Badge tone="muted">{categoryLabel(item.category)}</Badge></span>
+              <span className="flex items-center justify-between gap-3 lg:block">
+                <span className="section-label lg:hidden">Value</span>
                 <span className="data block text-[13px] text-vault-text">{currency.format(getCurrentValue(item))}</span>
                 <span className={`data mt-0.5 block text-[10px] ${itemReturn.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>{percent.format(itemReturn.percentage)} all-time</span>
               </span>
-              <span className={`data ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
+              <span className={`data flex items-center justify-between gap-3 lg:block ${daily.amount >= 0 ? "text-vault-green" : "text-vault-red"}`}>
+                <span className="section-label lg:hidden">Today</span>
                 {preciseCurrency.format(daily.amount)}
                 <span className="block text-[10px]">{percent.format(daily.percentage)} today</span>
               </span>
@@ -161,7 +163,7 @@ export function CollectionTable() {
                 {item.documents.length} docs · {getCompletenessScore(item)}%
                 <ArrowUpRight size={15} />
               </span>
-              <OpenToOffersControl item={item} compact />
+              <span className="hidden lg:block"><OpenToOffersControl item={item} compact /></span>
               <button
                 onClick={async () => {
                   const confirmed = window.confirm(`Remove "${item.name}" from your Vault?`);

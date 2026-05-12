@@ -89,7 +89,7 @@ textarea {
   }
 
   .form-input {
-    @apply focus-ring w-full rounded-md border border-vault-border bg-vault-surface px-3 py-3 text-sm text-vault-text placeholder:text-vault-faint;
+    @apply focus-ring w-full rounded-md border border-vault-border bg-vault-surface px-3 py-2.5 text-sm text-vault-text placeholder:text-vault-faint sm:py-3;
   }
 
   .section-label {
@@ -168,12 +168,12 @@ textarea {
   }
 
   .hero-label {
-    @apply flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-vault-gold;
+    @apply flex items-center gap-2 text-[9px] uppercase tracking-[0.18em] text-vault-gold sm:text-[10px] sm:tracking-[0.22em];
   }
 
   .hero-label::before {
     content: "";
-    width: 28px;
+    width: 18px;
     height: 1px;
     background: var(--gold);
   }
@@ -183,7 +183,7 @@ textarea {
   }
 
   .vault-pill {
-    @apply rounded-full border border-vault-border px-3 py-1.5 text-[10px] uppercase tracking-[0.07em] text-vault-faint transition hover:border-vault-bright hover:text-vault-muted;
+    @apply rounded-full border border-vault-border px-2.5 py-1.5 text-[9px] uppercase tracking-[0.06em] text-vault-faint transition hover:border-vault-bright hover:text-vault-muted sm:px-3 sm:text-[10px] sm:tracking-[0.07em];
   }
 
   .vault-pill-active {

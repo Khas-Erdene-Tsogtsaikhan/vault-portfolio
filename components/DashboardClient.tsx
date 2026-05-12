@@ -70,12 +70,12 @@ export function DashboardClient() {
   if (!items.length) {
     return (
       <AppShell>
-        <section className="vault-hero mb-7 overflow-hidden rounded-[14px] border border-vault-gold-dim p-8 sm:p-11 lg:p-12">
+        <section className="vault-hero mb-4 overflow-hidden rounded-[14px] border border-vault-gold-dim p-5 sm:mb-7 sm:p-11 lg:p-12">
           <div className="relative z-10">
             <div className="flex flex-col justify-between gap-6 sm:flex-row">
               <div>
                 <p className="hero-label"><span className="live-dot opacity-40" />Preview Portfolio</p>
-                <h1 className="mt-2 max-w-4xl font-serif text-[46px] font-light leading-none text-vault-text/45 sm:text-[72px]">
+                <h1 className="mt-2 max-w-4xl font-serif text-[36px] font-light leading-none text-vault-text/45 sm:text-[72px]">
                   {preciseCurrency.format(12840)}
                 </h1>
                 <div className="mt-2 inline-flex items-center gap-2 rounded border border-vault-green/10 bg-vault-green/5 px-3 py-1.5 font-mono text-[13px] text-vault-green/55">
@@ -91,14 +91,14 @@ export function DashboardClient() {
               </Link>
             </div>
 
-            <div className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_360px]">
-              <div className="rounded-[12px] border border-vault-border/70 bg-vault-black/70 p-4 opacity-75">
+            <div className="mt-6 grid gap-3 sm:mt-8 lg:grid-cols-[minmax(0,1.5fr)_360px]">
+              <div className="rounded-[12px] border border-vault-border/70 bg-vault-black/70 p-3 opacity-75 sm:p-4">
                 <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="section-label">Phantom Performance</p>
                     <p className="mt-1 text-sm text-vault-text/50">A sample of what your portfolio timeline will feel like.</p>
                   </div>
-                  <div className="flex rounded border border-vault-border bg-vault-black p-1">
+                  <div className="flex overflow-x-auto rounded border border-vault-border bg-vault-black p-1">
                     {ranges.map((item) => (
                       <button key={item} onClick={() => setRange(item)} className={`rounded px-3 py-2 font-mono text-[11px] transition ${range === item ? "bg-vault-gold/35 text-vault-text" : "text-vault-faint hover:text-vault-muted"}`}>
                         {item}
@@ -106,7 +106,7 @@ export function DashboardClient() {
                     ))}
                   </div>
                 </div>
-                <div className="h-[320px]">
+                <div className="h-[230px] sm:h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={phantomHistory} margin={{ top: 14, right: 10, bottom: 8, left: 0 }}>
                       <defs>
@@ -186,12 +186,12 @@ export function DashboardClient() {
         ) : null}
       </AnimatePresence>
 
-      <section className={`vault-hero mb-7 rounded-[14px] border border-vault-gold-dim p-8 transition-colors sm:p-11 lg:p-12 ${heroAnimating ? (heroDeltaPositive ? "vault-hero-animating-up" : "vault-hero-animating-down") : ""}`}>
+      <section className={`vault-hero mb-4 rounded-[14px] border border-vault-gold-dim p-5 transition-colors sm:mb-7 sm:p-11 lg:p-12 ${heroAnimating ? (heroDeltaPositive ? "vault-hero-animating-up" : "vault-hero-animating-down") : ""}`}>
         <div className="relative z-10">
           <div className="flex flex-col justify-between gap-6 sm:flex-row">
             <div>
               <p className="hero-label"><span className={`live-dot ${heroAnimating ? "live-dot-solid" : ""}`} />Portfolio Value</p>
-              <h1 className="relative mt-2 max-w-4xl font-serif text-[46px] font-light leading-none sm:text-[72px]">
+              <h1 className="relative mt-2 max-w-4xl break-words font-serif text-[36px] font-light leading-none sm:text-[72px]">
                 <AnimatePresence>
                   {lastAddedItem ? (
                     <motion.span
@@ -225,7 +225,7 @@ export function DashboardClient() {
             </Link>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-10">
+          <div className="mt-6 grid grid-cols-2 gap-4 sm:mt-8 sm:flex sm:flex-wrap sm:gap-10">
             <HeroStat value={metrics.itemCount.toString()} label="Items owned" />
             <HeroStat value={currency.format(metrics.totalValue / Math.max(metrics.itemCount, 1))} label="Avg. item value" />
             <HeroStat value={bestReturnValue} label="Best return ever" tone="green" />
@@ -234,22 +234,22 @@ export function DashboardClient() {
         </div>
       </section>
 
-      <section className="mb-7 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mb-4 grid gap-3 sm:mb-7 md:grid-cols-2 xl:grid-cols-4">
         <PrideCard icon={Crown} label="Crown Jewel" title={metrics.topItem.name} value={compactCurrency.format(getCurrentValue(metrics.topItem))} detail={`${percent.format(getItemReturn(metrics.topItem).percentage)} since you paid ${compactCurrency.format(metrics.topItem.costBasis)}`} featured />
         <PrideCard icon={Flame} label="Hottest Category" title={metrics.hottestCategory ? metrics.hottestCategory.category.replace("_", " ") : "None"} value={metrics.hottestCategory ? percent.format(metrics.hottestCategory.returnPercentage) : "0%"} detail="Best performing category right now" />
         <PrideCard icon={Gem} label="Rarest Piece" title={metrics.rarestPiece.name} value={metrics.rarestPiece.editionTotal ? `#${metrics.rarestPiece.editionNumber}/${metrics.rarestPiece.editionTotal}` : "Unique"} detail="Scarcity signal in your vault" />
         <PrideCard icon={Trophy} label="Acquisition Streak" title={`${metrics.acquisitionStreak} month${metrics.acquisitionStreak === 1 ? "" : "s"}`} value={metrics.acquisitionStreak ? "Active" : "Ready"} detail={metrics.acquisitionStreak ? "Consecutive months adding pieces" : "Add another asset this month to start a streak"} />
       </section>
 
-      <section className="mb-7 vault-panel overflow-hidden rounded-[12px]">
-        <div className="border-b border-vault-border p-5 sm:p-6">
+      <section className="mb-4 vault-panel overflow-hidden rounded-[12px] sm:mb-7">
+        <div className="border-b border-vault-border p-4 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="section-label">Live Portfolio Performance</p>
-              <h2 className="mt-2 font-serif text-4xl font-light text-vault-text sm:text-5xl">Your collection is moving like a market.</h2>
+              <h2 className="mt-2 font-serif text-3xl font-light text-vault-text sm:text-5xl">Your collection is moving like a market.</h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-vault-muted">This is the daily-open hook: total value, today&apos;s delta, category benchmarks, and the proof behind what moved.</p>
             </div>
-            <div className="flex rounded border border-vault-border bg-vault-black p-1">
+            <div className="flex overflow-x-auto rounded border border-vault-border bg-vault-black p-1">
               {ranges.map((item) => (
                 <button key={item} onClick={() => setRange(item)} className={`rounded px-3 py-2 font-mono text-[11px] transition ${range === item ? "bg-vault-gold text-vault-black" : "text-vault-muted hover:text-vault-text"}`}>
                   {item}
@@ -260,13 +260,13 @@ export function DashboardClient() {
         </div>
 
         <div className="grid gap-0 xl:grid-cols-[minmax(0,1.45fr)_440px]">
-          <div className="border-b border-vault-border p-4 sm:p-6 xl:border-b-0 xl:border-r">
+          <div className="border-b border-vault-border p-3 sm:p-6 xl:border-b-0 xl:border-r">
             <div className="mb-4 grid gap-3 sm:grid-cols-3">
               <IndexCard label={`${range} Move`} value={`${rangeMove.delta >= 0 ? "+" : ""}${preciseCurrency.format(rangeMove.delta)}`} detail={`${rangeMove.deltaPct >= 0 ? "+" : ""}${percent.format(rangeMove.deltaPct)} across selected range`} tone={rangeMove.delta >= 0 ? "green" : "muted"} />
               <IndexCard label={index.name} value={percent.format(index.ytdReturn)} detail={`${percent.format(index.todayReturn)} today`} tone={index.ytdReturn >= 0 ? "green" : "muted"} />
               <IndexCard label="Benchmark" value={beatingMarket ? "Beating market ↑" : "Building history"} detail={`${percent.format(metrics.totalReturnPercent - index.ytdReturn)} spread`} tone={beatingMarket ? "gold" : "muted"} />
             </div>
-            <div className="flex h-[360px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-3 sm:h-[430px]">
+            <div className="flex h-[250px] flex-col rounded-[10px] border border-vault-border bg-vault-black p-2 sm:h-[430px] sm:p-3">
               <div className="min-h-0 flex-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={rangeHistory} margin={{ top: 18, right: 10, bottom: 8, left: 0 }}>
@@ -375,7 +375,7 @@ function HeroStat({ value, label, tone = "text" }: { value: string; label: strin
   const color = tone === "green" ? "text-vault-green" : tone === "gold" ? "text-vault-gold" : "text-vault-text";
   return (
     <div>
-      <div className={`data mb-0.5 text-[19px] ${color}`}>{value}</div>
+      <div className={`data mb-0.5 text-base sm:text-[19px] ${color}`}>{value}</div>
       <div className="text-[10px] uppercase tracking-[0.08em] text-vault-faint">{label}</div>
     </div>
   );
@@ -384,9 +384,9 @@ function HeroStat({ value, label, tone = "text" }: { value: string; label: strin
 function IndexCard({ label, value, detail, tone }: { label: string; value: string; detail: string; tone: "green" | "muted" | "gold" }) {
   const color = tone === "green" ? "text-vault-green" : tone === "muted" ? "text-vault-muted" : "text-vault-gold";
   return (
-    <div className="rounded-[8px] border border-vault-border bg-vault-surface p-4">
+    <div className="rounded-[8px] border border-vault-border bg-vault-surface p-3 sm:p-4">
       <p className="section-label">{label}</p>
-      <p className={`data mt-2 text-xl ${color}`}>{value}</p>
+      <p className={`data mt-2 text-base sm:text-xl ${color}`}>{value}</p>
       <p className="mt-1 text-xs text-vault-muted">{detail}</p>
     </div>
   );
@@ -395,7 +395,7 @@ function IndexCard({ label, value, detail, tone }: { label: string; value: strin
 function PrideCard({ icon: Icon, label, title, value, detail, featured = false }: { icon: LucideIcon; label: string; title: string; value: string; detail: string; featured?: boolean }) {
   return (
     <motion.article
-      className={`relative overflow-hidden rounded-[10px] border p-5 transition hover:-translate-y-0.5 ${
+      className={`relative overflow-hidden rounded-[10px] border p-4 transition hover:-translate-y-0.5 sm:p-5 ${
         featured ? "border-vault-gold-dim bg-gradient-to-br from-[#120e04] to-vault-card" : "border-vault-border bg-vault-card hover:border-vault-bright hover:bg-vault-hover"
       }`}
       initial={{ opacity: 0, y: 14 }}
@@ -407,7 +407,7 @@ function PrideCard({ icon: Icon, label, title, value, detail, featured = false }
         {featured ? <span className="rounded bg-vault-gold/10 px-2 py-1 font-mono text-[9px] uppercase tracking-[0.06em] text-vault-gold">All time high</span> : null}
       </div>
       <p className="section-label mt-3">{label}</p>
-      <h3 className="mt-1 min-h-14 font-serif text-[26px] font-normal leading-tight text-vault-text">{title}</h3>
+      <h3 className="mt-1 min-h-0 font-serif text-[22px] font-normal leading-tight text-vault-text sm:min-h-14 sm:text-[26px]">{title}</h3>
       <p className="data mt-2 text-sm text-vault-gold">{value}</p>
       <p className="mt-1 text-[11px] leading-5 text-vault-muted">{detail}</p>
     </motion.article>
