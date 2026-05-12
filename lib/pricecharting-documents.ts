@@ -109,6 +109,19 @@ export function priceFieldLabel(fieldName: string, product: Pick<PriceChartingSe
   const category = normalizeCategory(product.category) ?? inferPriceChartingCategory({ "console-name": product.console_name, "product-name": product.product_name });
   const isCard = category === "trading_cards";
   const isVideoGame = category === "video_games";
+  const isFigure = category === "figurines" || category === "funko" || category === "lego";
+  if (isFigure) {
+    const labels: Record<string, string> = {
+      "loose-price": "Loose",
+      "cib-price": "Complete / With Box",
+      "new-price": "New / Sealed",
+      "graded-price": "Graded",
+      "box-only-price": "Box Only",
+      "manual-only-price": "Premium / Variant",
+      "bgs-10-price": "Premium Grade"
+    };
+    return labels[fieldName] ?? fieldName;
+  }
   if (isCard) {
     const labels: Record<string, string> = {
       "loose-price": "Raw / Ungraded",
@@ -174,6 +187,7 @@ function chooseOption(options: Array<{ field: string; label: string; value: numb
 function normalizeCategory(value: unknown): Category | null {
   if (typeof value !== "string" || !value.trim()) return null;
   const normalized = normalizePriceKey(value).replace(/-/g, "_");
+  if (/figurine|figure|figures|statue|action.*figure|collectible.*figure|nendoroid|amiibo/.test(normalized)) return "figurines";
   if (/pokemon|magic|yugioh|lorcana|sports.*cards|trading.*cards/.test(normalized)) return "trading_cards";
   if (/video.*game|games|nintendo|playstation|xbox|sega/.test(normalized)) return "video_games";
   if (/comic/.test(normalized)) return "comics";

@@ -136,7 +136,7 @@ export function MarketLookup({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {["Charizard", "Mew ex", "Pokemon 151"].map((example) => (
+        {["Charizard", "Mew ex", "Pokemon 151", "Funko Pop", "Amiibo", "Action Figure"].map((example) => (
           <button key={example} onClick={() => void searchFor(example)} className="rounded border border-vault-border bg-vault-black px-3 py-1.5 text-[11px] text-vault-muted transition hover:border-vault-bright hover:text-vault-text">
             {example}
           </button>
@@ -164,7 +164,7 @@ export function MarketLookup({
 
       {!isWorking && query.trim().length >= 2 && !results.length ? (
         <p className="mt-5 rounded-[10px] border border-dashed border-vault-border p-5 text-sm leading-6 text-vault-muted">
-          No priced PriceCharting matches came back. Try a more specific name, set, or card number.
+          No priced PriceCharting matches came back. Try a product name, set, card number, console, character, or terms like figure, statue, Funko, or Amiibo.
         </p>
       ) : null}
 

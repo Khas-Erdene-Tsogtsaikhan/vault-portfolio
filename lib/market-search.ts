@@ -10,7 +10,7 @@ export async function searchMarketItems(query: string, limit = 50, category?: st
       const response = await index.search<PriceChartingSearchDocument>(query, {
         limit: Math.max(1, Math.min(limit, 100)),
         filter: category && category !== "all" ? `category = "${escapeFilter(category)}"` : undefined,
-        sort: ["sales_volume:desc"],
+        matchingStrategy: "last",
         attributesToRetrieve: [
           "id",
           "pricecharting_id",

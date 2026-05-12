@@ -72,6 +72,7 @@ export function categoryLabel(category: Category) {
     coins: "Coins",
     video_games: "Video Games",
     comics: "Comics",
+    figurines: "Figures & Statues",
     funko: "Funko",
     lego: "LEGO",
     vintage_clothing: "Vintage Clothing",

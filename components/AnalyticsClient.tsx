@@ -62,6 +62,7 @@ const categoryColors: Record<Category, string> = {
   coins: "#c9a84c",
   video_games: "#7aaee8",
   comics: "#e87aa0",
+  figurines: "#e2c47a",
   funko: "#50c98a",
   lego: "#e2c47a",
   vintage_clothing: "#e87aa0",

@@ -10,6 +10,7 @@ export const categories = [
   "coins",
   "video_games",
   "comics",
+  "figurines",
   "funko",
   "lego",
   "vintage_clothing",
